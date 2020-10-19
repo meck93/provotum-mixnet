@@ -6,10 +6,10 @@ authors = ["Moritz Eck <moritz.eck@gmail.com>"]
 edition = "2018"
 license = "MIT"
 
-# `wasm-opt` is on by default in for the release profile, but it can be
-# disabled by setting it to `false`
+# `wasm-opt` is on for the release profile
+# only works with custom: wasm-pack (built from source)
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+wasm-opt = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
