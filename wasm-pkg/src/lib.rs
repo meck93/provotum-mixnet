@@ -22,12 +22,20 @@ pub fn greet(name: &str) {
 
 #[wasm_bindgen]
 pub fn multiply(n1: u32, n2: u32) -> u32 {
-    n1 * n2
+    let result = n1.overflowing_mul(n2);
+    match result {
+        (number, false) => number,
+        (_, true) => 0,
+    }
 }
 
 #[wasm_bindgen]
 pub fn power(base: u32, power: u32) -> u32 {
-    base.pow(power)
+    let result = base.overflowing_pow(power);
+    match result {
+        (number, false) => number,
+        (_, true) => 0,
+    }
 }
 
 #[wasm_bindgen]
