@@ -1,0 +1,40 @@
+name: substrate
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "bc-node/**"
+  pull_request:
+    branches: [master]
+    paths:
+      - "bc-node/**"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bc-node
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: |
+          rustup update nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
+          cargo +nightly build --verbose --release --target wasm32-unknown-unknown
+
+      - name: Test
+        run: cargo test --verbose -- -Z unstable-options
