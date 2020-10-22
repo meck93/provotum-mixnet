@@ -1,4 +1,4 @@
-# wasm-pkg
+# wasm-pkg (with `wasm-pack`)
 
 Rust code compiled to Web Assembly to be able to use it from the browser (Javascript).
 
