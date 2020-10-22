@@ -1,4 +1,4 @@
-name: substrate
+name: substrate dev
 
 on:
   push:
@@ -14,27 +14,48 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+    
+    runs-on: ${{ matrix.os }}
+    
     defaults:
       run:
         working-directory: bc-node
+
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/cache@v2
+      - name: Cache Dependencies
+        uses: actions/cache@v2
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-dev
 
-      - name: Build
+      - name: Setup Unix
         run: |
-          rustup update nightly
-          rustup target add wasm32-unknown-unknown --toolchain nightly
-          cargo +nightly build --verbose --release --target wasm32-unknown-unknown
+          curl https://getsubstrate.io -sSf | bash -s -- --fast
 
-      - name: Test
-        run: cargo test --verbose -- -Z unstable-options
+      - name: Setup Rust toolchain
+        run: |
+          rustup default stable
+          rustup toolchain install nightly-2020-10-06
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2020-10-06
+          rustup update
+
+      - name: Build Dev Binary
+        run: cargo +nightly-2020-10-06 build --verbose
+
+      - name: Create folder to store Dev Binary
+        run: |
+          mkdir -p artifacts/${{ matrix.os }}-${{ github.sha }} && cp target/debug/node-template artifacts/${{ matrix.os }}-${{ github.sha }}/
+          mkdir -p artifacts/${{ matrix.os }} && mv target/debug/node-template artifacts/${{ matrix.os }}/
+
+      - name: Test Dev Binary
+        run: cargo +nightly-2020-10-06 test --verbose
