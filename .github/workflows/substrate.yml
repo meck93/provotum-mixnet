@@ -56,8 +56,9 @@ jobs:
       - name: Upload Dev Binary
         uses: actions/upload-artifact@v2
         with: 
-          name: node-template-dev-${{ matrix.os }}-${{ github.sha }}
-          path: target/debug/node-template
+          name: node-template-dev-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ github.workspace }}/provotum-mixnet/bc-node/target/debug/node-template
+          retention-days: 7
 
       - name: Test Dev Binary
         run: cargo +nightly-2020-10-06 test --verbose
