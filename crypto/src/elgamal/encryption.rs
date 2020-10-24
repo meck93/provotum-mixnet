@@ -1,8 +1,11 @@
 use num_bigint::BigUint;
-use num_traits::One;
 
-pub fn return_big_uint_1() -> BigUint {
-    One::one()
+pub fn encrypt() {
+    unimplemented!()
+}
+
+pub fn decrypt() {
+    unimplemented!()
 }
 
 pub fn add_big_unint(a: &BigUint, b: &BigUint) -> BigUint {
@@ -12,12 +15,6 @@ pub fn add_big_unint(a: &BigUint, b: &BigUint) -> BigUint {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn it_return_big_uint_one() {
-        let one = return_big_uint_1();
-        assert_eq!(BigUint::one(), one);
-    }
 
     #[test]
     fn it_should_add_two_biguints() {
