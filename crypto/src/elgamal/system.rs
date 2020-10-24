@@ -65,10 +65,22 @@ pub mod helpers {
         use super::*;
 
         #[test]
+        fn check_if_q_is_correctly_computed() {
+            let test_params = ElGamalParams {
+                p: BigUint::from(7 as u32),
+                g: BigUint::from(2 as u32),
+            };
+
+            let expected_q = BigUint::from(3 as u32);
+            let q = test_params.q();
+            assert_eq!(expected_q, q);
+        }
+
+        #[test]
         fn check_if_generator_success() {
             let test_params = ElGamalParams {
-                p: BigUint::from(7u32),
-                g: BigUint::from(2u32),
+                p: BigUint::from(7 as u32),
+                g: BigUint::from(2 as u32),
             };
 
             let g_is_a_generator = is_generator(&test_params);
@@ -78,8 +90,8 @@ pub mod helpers {
         #[test]
         fn check_if_generator_failure() {
             let test_params = ElGamalParams {
-                p: BigUint::from(7u32),
-                g: BigUint::from(4u32),
+                p: BigUint::from(7 as u32),
+                g: BigUint::from(4 as u32),
             };
 
             let g_is_not_a_generator = is_generator(&test_params);
