@@ -22,7 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
       - uses: actions/cache@v2
         with:
           path: |
@@ -43,7 +42,7 @@ jobs:
         run: cargo +nightly build --verbose --release --target wasm32-unknown-unknown
           
       - name: Run Tests
-        run: cargo +nightly tarpaulin --verbose --no-fail-fast --release --workspace --out Xml
+        run: cargo +nightly test --verbose --no-fail-fast --release
 
   format:
     runs-on: ubuntu-latest
@@ -55,10 +54,8 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: check formatting
+        run: cargo +nightly fmt --all -- --check
 
   lint:
     runs-on: ubuntu-latest
@@ -70,7 +67,6 @@ jobs:
           toolchain: nightly
           override: true
           components: clippy          
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
+      - name: lint
+        run: cargo +nightly clippy
       
