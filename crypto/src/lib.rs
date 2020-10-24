@@ -12,6 +12,7 @@
 extern crate std;
 
 #[cfg(not(feature = "std"))]
+#[macro_use]
 extern crate alloc;
 
 // crates which this library exposes
