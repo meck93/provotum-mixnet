@@ -57,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with: 
           name: node-template-dev-${{ github.sha }}-${{ github.run_id }}
-          path: ${{ github.workspace }}/provotum-mixnet/bc-node/target/debug/node-template
+          path: ${{ github.workspace }}/bc-node/target/debug/node-template
           retention-days: 7
 
       - name: Test Dev Binary
