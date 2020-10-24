@@ -36,7 +36,6 @@ jobs:
           toolchain: nightly
           override: true
           target: wasm32-unknown-unknown
-          components: tarpaulin
 
       - name: Build Crypto Library
         run: cargo +nightly build --verbose --release --target wasm32-unknown-unknown
