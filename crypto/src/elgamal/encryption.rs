@@ -1,36 +1,93 @@
+use crate::elgamal::system::{Cipher, PublicKey};
+use core::ops::Mul;
 use num_bigint::BigUint;
 
-pub fn encrypt() {
-    unimplemented!()
-}
+pub struct Encryption;
 
-pub fn decrypt() {
-    unimplemented!()
-}
+impl Encryption {
+    /// Returns an ElGamal Encryption of a message
+    /// - (c1, c2) = (g^r, h^r*g^m)
+    ///
+    /// # Arguments
+    ///
+    /// * `m` - The message that holds the value of the vote
+    /// * `pk` - The public key used to encrypt the vote
+    pub fn encrypt(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
+        let g = &pk.params.g;
+        let p = &pk.params.p;
+        let h = &pk.h;
 
-pub fn add_big_unint(a: &BigUint, b: &BigUint) -> BigUint {
-    a + b
+        // c1 = g^r
+        let c1 = g.modpow(&r, &p);
+
+        // encode the message: g^m (exponential elgamal)
+        let enc_m = Encryption::encode_message(&m, &g, &p);
+
+        // c2 = h^r*g^m
+        let h_pow_r = h.modpow(&r, &p);
+        let c2 = h_pow_r.mul(enc_m) % p;
+
+        Cipher { a: c1, b: c2 }
+    }
+
+    pub fn decrypt() {
+        unimplemented!()
+    }
+
+    fn encode_message(m: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
+        g.modpow(m, p)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Encryption;
+    use crate::elgamal::system::{ElGamalParams, Helper};
+    use num_bigint::BigUint;
 
     #[test]
-    fn it_should_add_two_biguints() {
-        // uses little-endian format
-        let a_digits = vec![5, 0];
-        let a = BigUint::new(a_digits);
+    fn it_should_encode_message() {
+        let params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2 as u32),
+        };
+        let message = BigUint::from(2 as u32);
+        let encoded_message = Encryption::encode_message(&message, &params.g, &params.p);
+        assert_eq!(encoded_message, BigUint::from(4 as u32));
+    }
 
-        let b_digits = vec![3, 0];
-        let b = BigUint::new(b_digits);
+    #[test]
+    fn it_should_encrypt() {
+        let params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2 as u32),
+        };
 
-        // pass references (borrows) of a & b
-        let computed_result = add_big_unint(&a, &b);
+        // generate a public/private key pair
+        let r = BigUint::from(2 as u32);
+        let (pk, _sk) = Helper::generate_key_pair(&params, &r);
 
-        // computed result
-        let result = a + b;
+        // the value of the message: 1
+        let message = BigUint::from(1 as u32);
 
-        assert_eq!(result, computed_result);
+        // a new random value for the encryption
+        let r_ = BigUint::from(1 as u32);
+
+        // encrypt the message
+        let encrypted_message = Encryption::encrypt(&message, &r_, &pk);
+
+        // verify the encryption
+        let p = &pk.params.p;
+        let g = &pk.params.g;
+
+        // check that a = g^r_ = 2^1 mod 7 = 2
+        assert_eq!(encrypted_message.a, BigUint::from(2 as u32));
+
+        // check that b = h^r_*g^m = (g^r)^r_ * g^m
+        // b = ((2^2)^1 mod 7 * 2^1 mod 7) mod 7
+        // b = (4 mod 7 * 2 mod 7) mod 7 = 1
+        assert_eq!(encrypted_message.b, BigUint::from(1 as u32));
     }
 }

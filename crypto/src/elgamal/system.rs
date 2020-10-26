@@ -45,14 +45,12 @@ pub struct Cipher {
     // a = g^r mod p
     // - g: generator
     // - r: random value (r ∈ Zq)
-    a: BigUint,
+    pub a: BigUint,
 
     // b = h^r*g^m mod p
     // - h: public key
     // - m: message
-    b: BigUint,
-
-    r: Option<BigUint>,
+    pub b: BigUint,
 }
 
 pub struct Helper;
