@@ -48,7 +48,7 @@ impl Encryption {
 
 #[cfg(test)]
 mod tests {
-    use super::Encryption;
+    use crate::elgamal::encryption::Encryption;
     use crate::elgamal::system::{ElGamalParams, Helper};
     use num_bigint::BigUint;
 
