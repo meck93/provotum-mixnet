@@ -18,7 +18,7 @@ impl ModuloOperations for BigUint {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct ElGamalParams {
     // modulus: p
     pub p: BigUint,
@@ -35,27 +35,28 @@ impl ElGamalParams {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct PublicKey {
     // system parameters (p, g)
     pub params: ElGamalParams,
 
-    // public key: h = g^s mod p
+    // public key: h = g^x mod p
     // - g: generator
-    // - s: private key
+    // - x: private key
     pub h: BigUint,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub struct PrivateKey {
     // system parameters (p, g)
     pub params: ElGamalParams,
 
-    // private key: s
-    // - s: a random value (s ∈ Zq)
-    pub s: BigUint,
+    // private key: x
+    // - x: a random value (x ∈ Zq)
+    pub x: BigUint,
 }
 
+#[derive(Eq, PartialEq, Clone, Debug, Hash)]
 pub struct Cipher {
     // a = g^r mod p
     // - g: generator
@@ -74,9 +75,9 @@ impl Helper {
     pub fn generate_key_pair(params: &ElGamalParams, r: &BigUint) -> (PublicKey, PrivateKey) {
         let sk = PrivateKey {
             params: params.clone(),
-            s: r.clone(),
+            x: r.clone(),
         };
-        let h = params.g.clone().modpow(&sk.s, &params.p);
+        let h = params.g.modpow(&sk.x, &params.p);
         let pk = PublicKey {
             params: params.clone(),
             h,
@@ -90,15 +91,15 @@ impl Helper {
     }
 
     pub fn is_generator(params: &ElGamalParams) -> bool {
-        let p = params.p.clone();
-        let g = params.g.clone();
         let q = params.q();
 
         // g is a generator (valid) if:
         // 1. g != 1
         // 2. q != q
         // 3. g^q mod p == 1
-        g != q && g != BigUint::one() && (g.modpow(&q, &p) == BigUint::one())
+        params.g != q
+            && params.g != BigUint::one()
+            && (params.g.modpow(&q, &params.p) == BigUint::one())
     }
 
     pub fn get_generator_candidates(p: &BigUint) -> Vec<BigUint> {
@@ -191,11 +192,11 @@ mod tests {
 
         let sk = PrivateKey {
             params: params.clone(),
-            // s: a random value
-            s: r.clone(),
+            // x: a random value
+            x: r.clone(),
         };
 
-        assert_eq!(sk.s, BigUint::from(2 as u32));
+        assert_eq!(sk.x, BigUint::from(2 as u32));
         assert_eq!(sk.params.g, BigUint::from(2 as u32));
         assert_eq!(sk.params.p, BigUint::from(7 as u32));
     }
@@ -219,10 +220,10 @@ mod tests {
 
         assert_eq!(sk.params.p, BigUint::from(7 as u32));
         assert_eq!(sk.params.g, BigUint::from(2 as u32));
-        assert_eq!(sk.s, BigUint::from(2 as u32));
+        assert_eq!(sk.x, BigUint::from(2 as u32));
 
-        // verify that h == g^s mod p
-        assert_eq!(pk.h, sk.params.g.modpow(&sk.s, &sk.params.p));
+        // verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
     }
 
     #[test]

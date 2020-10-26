@@ -19,20 +19,21 @@ impl ElGamal {
         let h = &pk.h;
 
         // c1 = g^r
-        let c1 = g.modpow(&r, &p);
+        let c1 = g.modpow(r, p);
 
         // encode the message: g^m (exponential elgamal)
-        let enc_m = ElGamal::encode_message(&m, &g, &p);
+        let enc_m = ElGamal::encode_message(m, g, p);
 
         // c2 = h^r*g^m
-        let h_pow_r = h.modpow(&r, &p);
+        let h_pow_r = h.modpow(r, p);
         let c2 = h_pow_r.modmul(&enc_m, p);
 
         Cipher { a: c1, b: c2 }
     }
 
     /// Returns the plaintext contained in an ElGamal Encryption
-    /// - (c1, c2) = (g^r, h^r*g^m)
+    /// - mh = c2 * (c1^x)^-1
+    /// - m = log mh = log g^m
     ///
     /// ## Arguments
     ///
@@ -44,11 +45,15 @@ impl ElGamal {
 
         let g = &sk.params.g;
         let p = &sk.params.p;
-        let s = &sk.s;
+        let x = &sk.x;
 
-        unimplemented!();
-        // c1 = g^r -> c1^s = g^r^s
-        // c2 =
+        // c1 = g^r -> c1^x = g^r^x
+        let s = c1.modpow(x, p);
+
+        // compute multiplicative inverse of s
+
+        // c2 = g^m*h^r -> mh = c2 * s^-1
+        unimplemented!()
 
         // brute force discrete logarithm
     }
@@ -130,6 +135,22 @@ mod tests {
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
         let decoded_message = ElGamal::decode_message(&encoded_message, &params.g, &params.p);
         assert_eq!(one, decoded_message);
+    }
+
+    #[test]
+    fn it_should_decode_25() {
+        let params = ElGamalParams {
+            p: BigUint::from(23 as u32),
+            // and, therefore, q -> 11
+            g: BigUint::from(2 as u32),
+        };
+
+        // choose a message m > 1 && m < q
+        let nine = BigUint::from(9 as u32);
+        let message = nine.clone();
+        let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
+        let decoded_message = ElGamal::decode_message(&encoded_message, &params.g, &params.p);
+        assert_eq!(nine, decoded_message);
     }
 
     #[test]
