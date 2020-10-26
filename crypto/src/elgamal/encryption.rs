@@ -1,10 +1,11 @@
 use crate::elgamal::system::ModuloOperations;
-use crate::elgamal::system::{Cipher, PublicKey};
+use crate::elgamal::system::{Cipher, PrivateKey, PublicKey};
 use num_bigint::BigUint;
+use num_traits::Zero;
 
-pub struct Encryption;
+pub struct ElGamal;
 
-impl Encryption {
+impl ElGamal {
     /// Returns an ElGamal Encryption of a message
     /// - (c1, c2) = (g^r, h^r*g^m)
     ///
@@ -21,7 +22,7 @@ impl Encryption {
         let c1 = g.modpow(&r, &p);
 
         // encode the message: g^m (exponential elgamal)
-        let enc_m = Encryption::encode_message(&m, &g, &p);
+        let enc_m = ElGamal::encode_message(&m, &g, &p);
 
         // c2 = h^r*g^m
         let h_pow_r = h.modpow(&r, &p);
@@ -30,38 +31,105 @@ impl Encryption {
         Cipher { a: c1, b: c2 }
     }
 
-    pub fn decrypt() {
-        unimplemented!()
+    /// Returns the plaintext contained in an ElGamal Encryption
+    /// - (c1, c2) = (g^r, h^r*g^m)
+    ///
+    /// ## Arguments
+    ///
+    /// * `cipher` - The ElGamal Encryption (c1: BigUint, c2: BigUint)
+    /// * `sk` - The private key used to decrypt the vote
+    pub fn decrypt(cipher: &Cipher, sk: &PrivateKey) -> BigUint {
+        let c1 = &cipher.a;
+        let c2 = &cipher.b;
+
+        let g = &sk.params.g;
+        let p = &sk.params.p;
+        let s = &sk.s;
+
+        unimplemented!();
+        // c1 = g^r -> c1^s = g^r^s
+        // c2 =
+
+        // brute force discrete logarithm
     }
 
     /// Encodes a plain-text message to be used in an explonential ElGamal scheme
-    /// - encoded_message = g^m
+    /// Returns encoded_message = g^m.
     ///
     /// ## Arguments
     ///
     /// * `m` - The message  (BigUint)
-    /// * `g` - The generator of the cyclic group Z_p
+    /// * `g` - The generator of the cyclic group Z_p (BigUint)
+    /// * `p` - The group modulus p (BigUint)
     fn encode_message(m: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
         g.modpow(m, p)
+    }
+
+    /// Decodes an explonential ElGamal scheme encoded message by brute forcing the discrete lograithm.
+    /// The goal is to find: encoded_message = g^m by iterating through different values for m.
+    ///
+    /// ## Arguments
+    ///
+    /// * `encoded_message` - The encoded message: g^m (BigUint)
+    /// * `g` - The generator of the cyclic group Z_p (BigUint)
+    /// * `p` - The group modulus p (BigUint)
+    fn decode_message(encoded_message: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
+        let one = 1 as u32;
+        let mut message = BigUint::zero();
+
+        // dereference 'encoded_message' to get the value
+        while *encoded_message != ElGamal::encode_message(&message, g, p) {
+            message += one
+        }
+        message
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::encryption::Encryption;
+    use crate::elgamal::encryption::ElGamal;
     use crate::elgamal::system::{ElGamalParams, Helper};
     use num_bigint::BigUint;
+    use num_traits::{One, Zero};
 
     #[test]
-    fn it_should_encode_message() {
+    fn it_should_encode_a_message() {
         let params = ElGamalParams {
             p: BigUint::from(7 as u32),
             // and, therefore, q -> 3
             g: BigUint::from(2 as u32),
         };
         let message = BigUint::from(2 as u32);
-        let encoded_message = Encryption::encode_message(&message, &params.g, &params.p);
+        let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
         assert_eq!(encoded_message, BigUint::from(4 as u32));
+    }
+
+    #[test]
+    fn it_should_decode_0() {
+        let params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2 as u32),
+        };
+        let zero = BigUint::zero();
+        let message = zero.clone();
+        let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
+        let decoded_message = ElGamal::decode_message(&encoded_message, &params.g, &params.p);
+        assert_eq!(zero, decoded_message);
+    }
+
+    #[test]
+    fn it_should_decode_1() {
+        let params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2 as u32),
+        };
+        let one = BigUint::one();
+        let message = one.clone();
+        let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
+        let decoded_message = ElGamal::decode_message(&encoded_message, &params.g, &params.p);
+        assert_eq!(one, decoded_message);
     }
 
     #[test]
@@ -83,7 +151,7 @@ mod tests {
         let r_ = BigUint::from(1 as u32);
 
         // encrypt the message
-        let encrypted_message = Encryption::encrypt(&message, &r_, &pk);
+        let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
 
         // verify the encryption
         let p = &pk.params.p;
