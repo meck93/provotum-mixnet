@@ -51,11 +51,14 @@ impl ElGamal {
         let s = c1.modpow(x, p);
 
         // compute multiplicative inverse of s
+        let s_1 = s.invmod(p).unwrap();
 
         // c2 = g^m*h^r -> mh = c2 * s^-1
-        unimplemented!()
+        let mh = c2.modmul(&s_1, p);
 
         // brute force discrete logarithm
+        let m = ElGamal::decode_message(&mh, g, p);
+        m
     }
 
     /// Encodes a plain-text message to be used in an explonential ElGamal scheme
@@ -82,7 +85,8 @@ impl ElGamal {
         let one = 1 as u32;
         let mut message = BigUint::zero();
 
-        // dereference 'encoded_message' to get the value
+        // *encoded_message = dereference 'encoded_message' to get the value
+        // brute force the discrete logarithm
         while *encoded_message != ElGamal::encode_message(&message, g, p) {
             message += one
         }
@@ -174,10 +178,6 @@ mod tests {
         // encrypt the message
         let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
 
-        // verify the encryption
-        let p = &pk.params.p;
-        let g = &pk.params.g;
-
         // check that a = g^r_ = 2^1 mod 7 = 2
         assert_eq!(encrypted_message.a, BigUint::from(2 as u32));
 
@@ -185,5 +185,31 @@ mod tests {
         // b = ((2^2)^1 mod 7 * 2^1 mod 7) mod 7
         // b = (4 mod 7 * 2 mod 7) mod 7 = 1
         assert_eq!(encrypted_message.b, BigUint::from(1 as u32));
+    }
+
+    #[test]
+    fn it_should_encrypt_decrypt_2() {
+        let params = ElGamalParams {
+            p: BigUint::from(23 as u32),
+            // and, therefore, q -> 11
+            g: BigUint::from(2 as u32),
+        };
+
+        // generate a public/private key pair
+        let r = BigUint::from(9 as u32);
+        let (pk, sk) = Helper::generate_key_pair(&params, &r);
+
+        // the value of the message: 2
+        let message = BigUint::from(2 as u32);
+
+        // a new random value for the encryption
+        let r_ = BigUint::from(5 as u32);
+
+        // encrypt the message
+        let encrypted_message = ElGamal::encrypt(&message, &r_, &pk);
+
+        // decrypt the encrypted_message & check that the messages are equal
+        let decrypted_message = ElGamal::decrypt(&encrypted_message, &sk);
+        assert_eq!(decrypted_message, message);
     }
 }
