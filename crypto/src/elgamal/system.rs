@@ -25,7 +25,9 @@ pub struct PublicKey {
     // system parameters (p, g)
     pub params: ElGamalParams,
 
-    // public key: h
+    // public key: h = g^s mod p
+    // - g: generator
+    // - s: private key
     pub h: BigUint,
 }
 
@@ -34,12 +36,45 @@ pub struct PrivateKey {
     // system parameters (p, g)
     pub params: ElGamalParams,
 
-    // private key: x
-    pub x: BigUint,
+    // private key: s
+    // - s: a random value (s ∈ Zq)
+    pub s: BigUint,
 }
 
-pub mod helpers {
-    use super::*;
+pub struct Cipher {
+    // a = g^r mod p
+    // - g: generator
+    // - r: random value (r ∈ Zq)
+    a: BigUint,
+
+    // b = h^r*g^m mod p
+    // - h: public key
+    // - m: message
+    b: BigUint,
+
+    r: Option<BigUint>,
+}
+
+pub struct Helper;
+
+impl Helper {
+    pub fn generate_key_pair(params: &ElGamalParams, r: &BigUint) -> (PublicKey, PrivateKey) {
+        let sk = PrivateKey {
+            params: params.clone(),
+            s: r.clone(),
+        };
+        let h = params.g.clone().modpow(&sk.s, &params.p);
+        let pk = PublicKey {
+            params: params.clone(),
+            h,
+        };
+        (pk, sk)
+    }
+
+    pub fn is_p_valid(p: &BigUint) -> bool {
+        // check if p is prime
+        unimplemented!()
+    }
 
     pub fn is_generator(params: &ElGamalParams) -> bool {
         let p = params.p.clone();
@@ -59,43 +94,114 @@ pub mod helpers {
         // 3. step: check that g is a valid generator
         unimplemented!()
     }
+}
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        #[test]
-        fn check_if_q_is_correctly_computed() {
-            let test_params = ElGamalParams {
-                p: BigUint::from(7 as u32),
-                g: BigUint::from(2 as u32),
-            };
+    #[test]
+    fn check_that_q_is_correctly_computed() {
+        let test_params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            g: BigUint::from(2 as u32),
+        };
 
-            let expected_q = BigUint::from(3 as u32);
-            let q = test_params.q();
-            assert_eq!(expected_q, q);
-        }
+        let expected_q = BigUint::from(3 as u32);
+        let q = test_params.q();
+        assert_eq!(expected_q, q);
+    }
 
-        #[test]
-        fn check_if_generator_success() {
-            let test_params = ElGamalParams {
-                p: BigUint::from(7 as u32),
-                g: BigUint::from(2 as u32),
-            };
+    #[test]
+    fn it_should_create_a_public_key() {
+        let params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2 as u32),
+        };
 
-            let g_is_a_generator = is_generator(&test_params);
-            assert!(g_is_a_generator);
-        }
+        // random value must be: r ∈ Zq = r ∈ {0,1,2}
+        let r = BigUint::from(2 as u32);
 
-        #[test]
-        fn check_if_generator_failure() {
-            let test_params = ElGamalParams {
-                p: BigUint::from(7 as u32),
-                g: BigUint::from(4 as u32),
-            };
+        // h = g^r mod p
+        // h = 2^2 mod 7 = 4
+        let h = params.g.clone().modpow(&r, &params.p);
+        let pk = PublicKey {
+            params: params.clone(),
+            h,
+        };
 
-            let g_is_not_a_generator = is_generator(&test_params);
-            assert!(g_is_not_a_generator);
-        }
+        assert_eq!(pk.h, BigUint::from(4 as u32));
+        assert_eq!(pk.params.g, BigUint::from(2 as u32));
+        assert_eq!(pk.params.p, BigUint::from(7 as u32));
+    }
+
+    #[test]
+    fn it_should_create_a_private_key() {
+        let params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2 as u32),
+        };
+
+        // random value must be: r ∈ Zq = r ∈ {0,1,2}
+        let r = BigUint::from(2 as u32);
+
+        let sk = PrivateKey {
+            params: params.clone(),
+            // s: a random value
+            s: r.clone(),
+        };
+
+        assert_eq!(sk.s, BigUint::from(2 as u32));
+        assert_eq!(sk.params.g, BigUint::from(2 as u32));
+        assert_eq!(sk.params.p, BigUint::from(7 as u32));
+    }
+    #[test]
+    fn it_should_create_a_key_pair() {
+        let params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2 as u32),
+        };
+
+        // random value must be: r ∈ Zq = r ∈ {0,1,2}
+        let r = BigUint::from(2 as u32);
+
+        // create public/private key pair
+        let (pk, sk) = Helper::generate_key_pair(&params, &r);
+
+        assert_eq!(pk.params.p, BigUint::from(7 as u32));
+        assert_eq!(pk.params.g, BigUint::from(2 as u32));
+        assert_eq!(pk.params.q(), BigUint::from(3 as u32));
+
+        assert_eq!(sk.params.p, BigUint::from(7 as u32));
+        assert_eq!(sk.params.g, BigUint::from(2 as u32));
+        assert_eq!(sk.s, BigUint::from(2 as u32));
+
+        // verify that h == g^s mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.s, &sk.params.p));
+    }
+
+    #[test]
+    fn check_if_generator_success() {
+        let test_params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            g: BigUint::from(2 as u32),
+        };
+
+        let g_is_a_generator = Helper::is_generator(&test_params);
+        assert!(g_is_a_generator);
+    }
+
+    #[test]
+    fn check_if_generator_failure() {
+        let test_params = ElGamalParams {
+            p: BigUint::from(7 as u32),
+            g: BigUint::from(4 as u32),
+        };
+
+        let g_is_not_a_generator = Helper::is_generator(&test_params);
+        assert!(g_is_not_a_generator);
     }
 }
