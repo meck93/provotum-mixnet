@@ -1,7 +1,22 @@
 use alloc::vec::Vec;
-use core::ops::{Div, Sub};
+use core::ops::{Div, Mul, Sub};
 use num_bigint::BigUint;
 use num_traits::One;
+use num_traits::Zero;
+
+pub trait ModuloOperations {
+    fn modmul(&self, rhs: &Self, modulus: &Self) -> Self;
+}
+
+impl ModuloOperations for BigUint {
+    fn modmul(&self, rhs: &Self, modulus: &Self) -> Self {
+        assert!(
+            !modulus.is_zero(),
+            "attempt to calculate with zero modulus!"
+        );
+        self.mul(rhs) % modulus
+    }
+}
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct ElGamalParams {
@@ -96,7 +111,36 @@ impl Helper {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{ElGamalParams, Helper, PrivateKey, PublicKey};
+    use num_bigint::BigUint;
+
+    #[cfg(test)]
+    mod modulo_operations {
+        use crate::elgamal::system::ModuloOperations;
+        use num_bigint::BigUint;
+        use num_traits::Zero;
+
+        #[test]
+        fn is_modulo_multiplication() {
+            let three = BigUint::from(3 as u32);
+            let six = BigUint::from(6 as u32);
+            let ten = BigUint::from(10 as u32);
+
+            let eight = six.modmul(&three, &ten);
+            assert_eq!(eight, BigUint::from(8 as u32));
+        }
+
+        #[test]
+        #[should_panic]
+        fn it_should_not_use_modulus_zero() {
+            let three = BigUint::from(3 as u32);
+            let six = BigUint::from(6 as u32);
+            let zero = BigUint::zero();
+
+            // should panic since modulus is zero
+            six.modmul(&three, &zero);
+        }
+    }
 
     #[test]
     fn check_that_q_is_correctly_computed() {

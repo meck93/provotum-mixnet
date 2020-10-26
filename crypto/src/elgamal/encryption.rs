@@ -1,5 +1,5 @@
+use crate::elgamal::system::ModuloOperations;
 use crate::elgamal::system::{Cipher, PublicKey};
-use core::ops::Mul;
 use num_bigint::BigUint;
 
 pub struct Encryption;
@@ -8,9 +8,9 @@ impl Encryption {
     /// Returns an ElGamal Encryption of a message
     /// - (c1, c2) = (g^r, h^r*g^m)
     ///
-    /// # Arguments
+    /// ## Arguments
     ///
-    /// * `m` - The message that holds the value of the vote
+    /// * `m` - The message (BigUint)
     /// * `pk` - The public key used to encrypt the vote
     pub fn encrypt(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
         let g = &pk.params.g;
@@ -25,7 +25,7 @@ impl Encryption {
 
         // c2 = h^r*g^m
         let h_pow_r = h.modpow(&r, &p);
-        let c2 = h_pow_r.mul(enc_m) % p;
+        let c2 = h_pow_r.modmul(&enc_m, p);
 
         Cipher { a: c1, b: c2 }
     }
@@ -34,6 +34,13 @@ impl Encryption {
         unimplemented!()
     }
 
+    /// Encodes a plain-text message to be used in an explonential ElGamal scheme
+    /// - encoded_message = g^m
+    ///
+    /// ## Arguments
+    ///
+    /// * `m` - The message  (BigUint)
+    /// * `g` - The generator of the cyclic group Z_p
     fn encode_message(m: &BigUint, g: &BigUint, p: &BigUint) -> BigUint {
         g.modpow(m, p)
     }
