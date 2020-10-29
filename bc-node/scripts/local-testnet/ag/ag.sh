@@ -15,6 +15,18 @@ readonly projectDir="$(dirname "$parentParentDir")"
 mode=release
 insert_keys=false
 
+########################################
+# help function definition
+########################################
+function help {
+  cat << EOM
+The following parameters are supported:
+--insert-keys     starts up the node, inserts the keys and shuts the node down.
+--debug           starts the debug build of the substrate node.
+--bootnode=[id]   (required, when connecting) the identity of the peer node (bootnode)
+EOM
+}
+
 # idiomatic parameter and option handling in sh
 while test $# -gt 0
 do
@@ -27,6 +39,8 @@ do
         # extract the argument after the = sign
         (--bootnode=*)
             bootnode_ip=`(echo $1 | cut -d'=' -f 2)`;;
+        (--help)
+            help && exit 0;;
     esac
     shift
 done

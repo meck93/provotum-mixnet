@@ -15,6 +15,17 @@ readonly projectDir="$(dirname "$parentParentDir")"
 mode=release
 insert_keys=false
 
+########################################
+# help function definition
+########################################
+function help {
+  cat << EOM
+The following parameters are supported:
+--insert-keys     starts up the node, inserts the keys and shuts the node down.
+--debug           starts the debug build of the substrate node.
+EOM
+}
+
 # idiomatic parameter and option handling in sh
 while test $# -gt 0
 do
@@ -24,6 +35,8 @@ do
             insert_keys=true && echo "keys will be inserted.";;
         (--debug)
             mode=debug && echo "debug mode.";;
+        (--help)
+            help && exit 0;;
     esac
     shift
 done
