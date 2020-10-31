@@ -885,11 +885,8 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 name = "crypto"
 version = "0.1.0"
 dependencies = [
- "blake2",
  "num-bigint 0.3.0",
- "num-integer",
  "num-traits",
- "sha2 0.9.1",
 ]
 
 [[package]]
@@ -3618,10 +3615,13 @@ dependencies = [
  "crypto",
  "frame-support",
  "frame-system",
+ "num-bigint 0.3.0",
+ "num-traits",
  "parity-scale-codec",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
