@@ -70,7 +70,7 @@ impl Helper {
         (pk, sk)
     }
 
-    pub fn is_p_valid(p: &BigUint) -> bool {
+    pub fn is_p_valid(_p: &BigUint) -> bool {
         // check if p is prime
         unimplemented!()
     }
@@ -87,7 +87,7 @@ impl Helper {
             && (params.g.modpow(&q, &params.p) == BigUint::one())
     }
 
-    pub fn get_generator_candidates(p: &BigUint) -> Vec<BigUint> {
+    pub fn get_generator_candidates(_p: &BigUint) -> Vec<BigUint> {
         // 1. step: find q for the given p
         // 2. step: get all primitive roots for q
         // 3. step: check that g is a valid generator

@@ -69,8 +69,5 @@ jobs:
           override: true
           components: clippy          
       - name: lint
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+        run: cargo +nightly clippy --all-features -- -D warnings
       
