@@ -170,19 +170,19 @@ mod tests {
 
     #[test]
     fn is_modulo_multiplication() {
-        let three = BigUint::from(3 as u32);
-        let six = BigUint::from(6 as u32);
-        let ten = BigUint::from(10 as u32);
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
+        let ten = BigUint::from(10u32);
 
         let eight = six.modmul(&three, &ten);
-        assert_eq!(eight, BigUint::from(8 as u32));
+        assert_eq!(eight, BigUint::from(8u32));
     }
 
     #[test]
     #[should_panic(expected = "attempt to calculate with zero modulus!")]
     fn it_should_not_use_modulus_zero() {
-        let three = BigUint::from(3 as u32);
-        let six = BigUint::from(6 as u32);
+        let three = BigUint::from(3u32);
+        let six = BigUint::from(6u32);
         let zero = BigUint::zero();
 
         // should panic since modulus is zero
@@ -191,10 +191,10 @@ mod tests {
 
     #[test]
     fn it_should_compute_inverse_modulo_2_invmod_7() {
-        let seven = BigUint::from(7 as u32);
-        let two = BigUint::from(2 as u32);
+        let seven = BigUint::from(7u32);
+        let two = BigUint::from(2u32);
 
-        let expected_result = BigUint::from(4 as u32);
+        let expected_result = BigUint::from(4u32);
 
         let result = two.invmod(&seven);
         let inverse: BigUint = result.unwrap();
@@ -203,10 +203,10 @@ mod tests {
 
     #[test]
     fn it_should_compute_inverse_modulo_17_invmod_23() {
-        let seventeen = BigUint::from(17 as u32);
-        let twentythree = BigUint::from(23 as u32);
+        let seventeen = BigUint::from(17u32);
+        let twentythree = BigUint::from(23u32);
 
-        let expected_result = BigUint::from(19 as u32);
+        let expected_result = BigUint::from(19u32);
 
         let result = seventeen.invmod(&twentythree);
         let inverse: BigUint = result.unwrap();
@@ -216,8 +216,8 @@ mod tests {
     #[test]
     #[should_panic(expected = "modulus must be greater or equal to the number!")]
     fn it_should_panic_modulus_is_smaller_than_number() {
-        let six = BigUint::from(6 as u32);
-        let two = BigUint::from(2 as u32);
+        let six = BigUint::from(6u32);
+        let two = BigUint::from(2u32);
 
         // should panic since two is smaller than six
         six.invmod(&two);
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "attempt to calculate with zero modulus!")]
     fn it_should_panic_modulus_is_zero() {
-        let six = BigUint::from(6 as u32);
+        let six = BigUint::from(6u32);
         let zero = BigUint::zero();
 
         // should panic since modulus is zero
