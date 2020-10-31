@@ -1,8 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use crypto::elgamal::{
-    encryption::ElGamal,
-    system::{ElGamalParams, Helper},
-};
+use crypto::elgamal::{encryption::ElGamal, helper::Helper, types::ElGamalParams};
 use num_bigint::BigUint;
 
 fn criterion_benchmark(c: &mut Criterion) {

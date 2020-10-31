@@ -1,6 +1,57 @@
-use core::ops::Mul;
+use core::ops::{Div, Mul, Sub};
 use num_bigint::{BigInt, BigUint};
 use num_traits::{One, Zero};
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+pub struct ElGamalParams {
+    // modulus: p
+    pub p: BigUint,
+
+    // generator: g
+    pub g: BigUint,
+}
+
+impl ElGamalParams {
+    // q:
+    // q is valid if it is prime
+    pub fn q(&self) -> BigUint {
+        (self.p.clone().sub(1u32)).div(2u32)
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+pub struct PublicKey {
+    // system parameters (p, g)
+    pub params: ElGamalParams,
+
+    // public key: h = g^x mod p
+    // - g: generator
+    // - x: private key
+    pub h: BigUint,
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+pub struct PrivateKey {
+    // system parameters (p, g)
+    pub params: ElGamalParams,
+
+    // private key: x
+    // - x: a random value (x ∈ Zq)
+    pub x: BigUint,
+}
+
+#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+pub struct Cipher {
+    // a = g^r mod p
+    // - g: generator
+    // - r: random value (r ∈ Zq)
+    pub a: BigUint,
+
+    // b = h^r*g^m mod p
+    // - h: public key
+    // - m: message
+    pub b: BigUint,
+}
 
 pub trait ModuloOperations {
     /// Calculates the modular multiplicative of a BigUint: result = self * multiplier % modulus.
@@ -55,9 +106,67 @@ fn extended_gcd(a: &BigInt, b: &BigInt) -> (BigInt, BigInt, BigInt) {
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::types::ModuloOperations;
+    use crate::elgamal::types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey};
     use num_bigint::BigUint;
     use num_traits::Zero;
+
+    #[test]
+    fn check_that_q_is_correctly_computed() {
+        let test_params = ElGamalParams {
+            p: BigUint::from(7u32),
+            g: BigUint::from(2u32),
+        };
+
+        let expected_q = BigUint::from(3u32);
+        let q = test_params.q();
+        assert_eq!(expected_q, q);
+    }
+
+    #[test]
+    fn it_should_create_a_public_key() {
+        let params = ElGamalParams {
+            p: BigUint::from(7u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2u32),
+        };
+
+        // random value must be: r ∈ Zq = r ∈ {0,1,2}
+        let r = BigUint::from(2u32);
+
+        // h = g^r mod p
+        // h = 2^2 mod 7 = 4
+        let h = params.g.clone().modpow(&r, &params.p);
+        let pk = PublicKey {
+            params: params.clone(),
+            h,
+        };
+
+        assert_eq!(pk.h, BigUint::from(4u32));
+        assert_eq!(pk.params.g, BigUint::from(2u32));
+        assert_eq!(pk.params.p, BigUint::from(7u32));
+    }
+
+    #[test]
+    fn it_should_create_a_private_key() {
+        let params = ElGamalParams {
+            p: BigUint::from(7u32),
+            // and, therefore, q -> 3
+            g: BigUint::from(2u32),
+        };
+
+        // random value must be: r ∈ Zq = r ∈ {0,1,2}
+        let r = BigUint::from(2u32);
+
+        let sk = PrivateKey {
+            params: params.clone(),
+            // x: a random value
+            x: r.clone(),
+        };
+
+        assert_eq!(sk.x, BigUint::from(2u32));
+        assert_eq!(sk.params.g, BigUint::from(2u32));
+        assert_eq!(sk.params.p, BigUint::from(7u32));
+    }
 
     #[test]
     fn is_modulo_multiplication() {

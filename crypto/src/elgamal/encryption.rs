@@ -1,5 +1,4 @@
-use crate::elgamal::system::{Cipher, PrivateKey, PublicKey};
-use crate::elgamal::types::ModuloOperations;
+use crate::elgamal::types::{Cipher, ModuloOperations, PrivateKey, PublicKey};
 use num_bigint::BigUint;
 use num_traits::Zero;
 
@@ -95,8 +94,7 @@ impl ElGamal {
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::encryption::ElGamal;
-    use crate::elgamal::system::{ElGamalParams, Helper};
+    use crate::elgamal::{encryption::ElGamal, helper::Helper, types::ElGamalParams};
     use num_bigint::BigUint;
     use num_traits::{One, Zero};
 
