@@ -16,7 +16,7 @@ impl ElGamalParams {
     // q:
     // q is valid if it is prime
     pub fn q(&self) -> BigUint {
-        (self.p.clone().sub(1 as u32)).div(2 as u32)
+        (self.p.clone().sub(1u32)).div(2u32)
     }
 }
 
@@ -103,11 +103,11 @@ mod tests {
     #[test]
     fn check_that_q_is_correctly_computed() {
         let test_params = ElGamalParams {
-            p: BigUint::from(7 as u32),
-            g: BigUint::from(2 as u32),
+            p: BigUint::from(7u32),
+            g: BigUint::from(2u32),
         };
 
-        let expected_q = BigUint::from(3 as u32);
+        let expected_q = BigUint::from(3u32);
         let q = test_params.q();
         assert_eq!(expected_q, q);
     }
@@ -115,13 +115,13 @@ mod tests {
     #[test]
     fn it_should_create_a_public_key() {
         let params = ElGamalParams {
-            p: BigUint::from(7 as u32),
+            p: BigUint::from(7u32),
             // and, therefore, q -> 3
-            g: BigUint::from(2 as u32),
+            g: BigUint::from(2u32),
         };
 
         // random value must be: r ∈ Zq = r ∈ {0,1,2}
-        let r = BigUint::from(2 as u32);
+        let r = BigUint::from(2u32);
 
         // h = g^r mod p
         // h = 2^2 mod 7 = 4
@@ -131,21 +131,21 @@ mod tests {
             h,
         };
 
-        assert_eq!(pk.h, BigUint::from(4 as u32));
-        assert_eq!(pk.params.g, BigUint::from(2 as u32));
-        assert_eq!(pk.params.p, BigUint::from(7 as u32));
+        assert_eq!(pk.h, BigUint::from(4u32));
+        assert_eq!(pk.params.g, BigUint::from(2u32));
+        assert_eq!(pk.params.p, BigUint::from(7u32));
     }
 
     #[test]
     fn it_should_create_a_private_key() {
         let params = ElGamalParams {
-            p: BigUint::from(7 as u32),
+            p: BigUint::from(7u32),
             // and, therefore, q -> 3
-            g: BigUint::from(2 as u32),
+            g: BigUint::from(2u32),
         };
 
         // random value must be: r ∈ Zq = r ∈ {0,1,2}
-        let r = BigUint::from(2 as u32);
+        let r = BigUint::from(2u32);
 
         let sk = PrivateKey {
             params: params.clone(),
@@ -153,31 +153,31 @@ mod tests {
             x: r.clone(),
         };
 
-        assert_eq!(sk.x, BigUint::from(2 as u32));
-        assert_eq!(sk.params.g, BigUint::from(2 as u32));
-        assert_eq!(sk.params.p, BigUint::from(7 as u32));
+        assert_eq!(sk.x, BigUint::from(2u32));
+        assert_eq!(sk.params.g, BigUint::from(2u32));
+        assert_eq!(sk.params.p, BigUint::from(7u32));
     }
     #[test]
     fn it_should_create_a_key_pair() {
         let params = ElGamalParams {
-            p: BigUint::from(7 as u32),
+            p: BigUint::from(7u32),
             // and, therefore, q -> 3
-            g: BigUint::from(2 as u32),
+            g: BigUint::from(2u32),
         };
 
         // random value must be: r ∈ Zq = r ∈ {0,1,2}
-        let r = BigUint::from(2 as u32);
+        let r = BigUint::from(2u32);
 
         // create public/private key pair
         let (pk, sk) = Helper::generate_key_pair(&params, &r);
 
-        assert_eq!(pk.params.p, BigUint::from(7 as u32));
-        assert_eq!(pk.params.g, BigUint::from(2 as u32));
-        assert_eq!(pk.params.q(), BigUint::from(3 as u32));
+        assert_eq!(pk.params.p, BigUint::from(7u32));
+        assert_eq!(pk.params.g, BigUint::from(2u32));
+        assert_eq!(pk.params.q(), BigUint::from(3u32));
 
-        assert_eq!(sk.params.p, BigUint::from(7 as u32));
-        assert_eq!(sk.params.g, BigUint::from(2 as u32));
-        assert_eq!(sk.x, BigUint::from(2 as u32));
+        assert_eq!(sk.params.p, BigUint::from(7u32));
+        assert_eq!(sk.params.g, BigUint::from(2u32));
+        assert_eq!(sk.x, BigUint::from(2u32));
 
         // verify that h == g^x mod p
         assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
@@ -186,8 +186,8 @@ mod tests {
     #[test]
     fn check_if_generator_success() {
         let test_params = ElGamalParams {
-            p: BigUint::from(7 as u32),
-            g: BigUint::from(2 as u32),
+            p: BigUint::from(7u32),
+            g: BigUint::from(2u32),
         };
 
         let g_is_a_generator = Helper::is_generator(&test_params);
@@ -197,8 +197,8 @@ mod tests {
     #[test]
     fn check_if_generator_failure() {
         let test_params = ElGamalParams {
-            p: BigUint::from(7 as u32),
-            g: BigUint::from(4 as u32),
+            p: BigUint::from(7u32),
+            g: BigUint::from(4u32),
         };
 
         let g_is_not_a_generator = Helper::is_generator(&test_params);
