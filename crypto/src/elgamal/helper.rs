@@ -19,6 +19,23 @@ impl Helper {
         (pk, sk)
     }
 
+    // helper function to setup ElGamal system before a test
+    pub fn setup_system(p: &[u8], g: &[u8], x: &[u8]) -> (ElGamalParams, PrivateKey, PublicKey) {
+        let params = ElGamalParams {
+            p: BigUint::parse_bytes(p, 10).unwrap(),
+            g: BigUint::parse_bytes(g, 10).unwrap(),
+        };
+        let sk = PrivateKey {
+            params: params.clone(),
+            x: BigUint::parse_bytes(x, 10).unwrap(),
+        };
+        let pk = PublicKey {
+            params: params.clone(),
+            h: params.g.modpow(&sk.x, &params.p),
+        };
+        (params, sk, pk)
+    }
+
     pub fn is_p_valid(_p: &BigUint) -> bool {
         // check if p is prime
         unimplemented!()
@@ -49,6 +66,22 @@ mod tests {
     use super::Helper;
     use crate::elgamal::types::ElGamalParams;
     use num_bigint::BigUint;
+
+    #[test]
+    fn it_should_create_system() {
+        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"4");
+
+        // system parameters check: p, q, g
+        assert_eq!(params.p, BigUint::from(23u32));
+        assert_eq!(params.g, BigUint::from(2u32));
+        assert_eq!(params.q(), BigUint::from(11u32));
+
+        // private key check: x == x
+        assert_eq!(sk.x, BigUint::from(4u32));
+
+        // public key check: verify that h == g^x mod p
+        assert_eq!(pk.h, sk.params.g.modpow(&sk.x, &sk.params.p));
+    }
 
     #[test]
     fn it_should_create_a_key_pair() {

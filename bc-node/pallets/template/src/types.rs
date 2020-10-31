@@ -1,4 +1,4 @@
-use crypto::elgamal::system::Cipher;
+use crypto::elgamal::types::Cipher;
 use frame_support::codec::{Decode, Encode};
 use num_bigint::BigUint;
 use sp_std::vec::Vec;
