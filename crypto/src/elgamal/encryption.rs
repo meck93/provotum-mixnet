@@ -57,8 +57,7 @@ impl ElGamal {
         let mh = c2.modmul(&s_1, p);
 
         // brute force discrete logarithm
-        let m = ElGamal::decode_message(&mh, g, p);
-        m
+        ElGamal::decode_message(&mh, g, p)
     }
 
     /// Encodes a plain-text message to be used in an explonential ElGamal scheme
