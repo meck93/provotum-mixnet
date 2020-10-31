@@ -1,17 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crypto::elgamal::encryption::ElGamal;
-use crypto::elgamal::system::{Cipher, ElGamalParams, PrivateKey};
 use frame_support::{
     codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch, traits::Get,
     weights::Pays,
 };
 use frame_system::ensure_signed;
-use num_bigint::BigUint;
 use sp_std::if_std;
 use sp_std::vec::Vec;
 
-use crate::types::Vote;
+use crate::types::Ballot;
 
 mod types;
 
@@ -31,7 +28,7 @@ decl_storage! {
     // TODO: update name TemplateModule
     trait Store for Module<T: Trait> as TemplateModule {
         Something get(fn something): Option<u32>;
-        Votes get(fn votes): Vec<Vote>;
+        Ballots get(fn ballots): Vec<Ballot>;
         Voters get(fn voters): Vec<T::AccountId>;
     }
 }
@@ -47,7 +44,7 @@ decl_event!(
         SomethingStored(u32, AccountId),
 
         /// vote submission event -> [from/who, encrypted vote]
-        VoteSubmitted(AccountId, Vote),
+        VoteSubmitted(AccountId, Ballot),
     }
 );
 
@@ -110,12 +107,10 @@ decl_module! {
         }
 
         #[weight = (10000, Pays::No)]
-        fn cast_encrypted_ballot(origin, vote: Vote) {
+        fn cast_encrypted_ballot(origin, vote: Ballot) -> dispatch::DispatchResult {
             // check that the extrinsic was signed and get the signer.
             let who = ensure_signed(origin)?;
             let address_bytes = who.encode();
-
-            // try to use runtime logger
             debug::info!("Voter {:?} (encoded: {:?}) cast a vote.", &who, address_bytes);
 
             if_std! {
@@ -128,21 +123,24 @@ decl_module! {
 
             // notify that the vote has been submitted and successfully stored
             Self::deposit_event(RawEvent::VoteSubmitted(who, vote));
+
+            // Return a successful DispatchResult
+            Ok(())
         }
     }
 }
 
 impl<T: Trait> Module<T> {
-    fn store_encrypted_ballot(from: T::AccountId, vote: Vote) {
+    fn store_encrypted_ballot(from: T::AccountId, vote: Ballot) {
         // store the vote
-        let mut votes: Vec<Vote> = Votes::get();
-        votes.push(vote.clone());
-        Votes::put(votes);
-        debug::info!("Encrypted Vote: {:?} has been stored.", vote);
+        let mut ballots: Vec<Ballot> = Ballots::get();
+        ballots.push(vote.clone());
+        Ballots::put(ballots);
+        debug::info!("Encrypted Ballot: {:?} has been stored.", vote);
 
         if_std! {
             // This code is only being compiled and executed when the `std` feature is enabled.
-            println!("Encrypted Vote: {:?} has been stored.", vote);
+            println!("Encrypted Ballot: {:?} has been stored.", vote);
         }
 
         // update the list of voters
