@@ -1,5 +1,5 @@
-use crate::elgamal::system::ModuloOperations;
 use crate::elgamal::system::{Cipher, PrivateKey, PublicKey};
+use crate::elgamal::types::ModuloOperations;
 use num_bigint::BigUint;
 use num_traits::Zero;
 
