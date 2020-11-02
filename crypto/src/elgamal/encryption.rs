@@ -6,7 +6,7 @@ pub struct ElGamal;
 
 impl ElGamal {
     /// Returns an ElGamal Encryption of a message
-    /// - (a, b) = (g^r, h^r*g^m)
+    /// - (a, b) = (g^r, h^r * g^m)
     ///
     /// ## Arguments
     ///
@@ -24,7 +24,7 @@ impl ElGamal {
         // encode the message: g^m (exponential elgamal)
         let enc_m = ElGamal::encode_message(m, g, p);
 
-        // b = h^r*g^m
+        // b = h^r * g^m
         let h_pow_r = h.modpow(r, p);
         let b = h_pow_r.modmul(&enc_m, p);
 
@@ -110,22 +110,20 @@ impl ElGamal {
     }
 
     /// Returns an ElGamal re-encryption of a message
-    /// - (a, b)   = (g^r, h^r*g^m)
-    /// - (a', b') = (a^r', b^r')
+    /// - message:      (a, b)      = (g^r, h^r * g^m)
+    /// - zero:         (a', b')    = (g^r', h^r' * g^0) = (g^r', h^r')
+    /// - reencryption: (a'', b'')  = (a * a', b * b')     = (g^(r * r'), h^(r * r') * g^m)
     ///
-    /// Note: The second part of b (g^m) can be dropped as a re-encryption is the same
-    ///       as a homomorphic addition with zero.
+    /// Note: The g^0 = 1 and, therefore, can be dropped. Re-encryption -> homomorphic addition with zero.
     ///
     /// ## Arguments
     ///
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
     /// * `r`      - The random number used to re-encrypt the vote    
     /// * `pk`     - The public key used to re-encrypt the vote
-    pub fn re_encrypt(cipher: &Cipher, r: &BigUint, p: &BigUint) -> Cipher {
-        Cipher {
-            a: cipher.a.modmul(r, p),
-            b: cipher.b.modmul(r, p),
-        }
+    pub fn re_encrypt(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
+        let zero = Self::encrypt(&BigUint::zero(), &r, &pk);
+        ElGamal::add(cipher, &zero, &pk.params.p)
     }
 }
 
@@ -282,7 +280,11 @@ mod tests {
 
     #[test]
     fn it_should_add_many_and_result_equals_five() {
-        let (params, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457",         b"2",          b"1701411834604692317316873037");
+        let (params, sk, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
 
         let q = params.q();
         let zero = BigUint::zero();
@@ -315,7 +317,11 @@ mod tests {
 
     #[test]
     fn it_should_reencrypt_a_message() {
-        let (params, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457",         b"2",          b"1701411834604692317316873037");
+        let (params, sk, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
 
         let q = params.q();
         let zero = BigUint::zero();
@@ -328,8 +334,8 @@ mod tests {
 
         // option 1: homomorphic addition
         // use a random number < q
-        let r = Random::random_lt_number(&q);
-        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+        let r_ = Random::random_lt_number(&q);
+        let encrypted_five = ElGamal::encrypt(&five, &r_, &pk);
 
         // homomorphic addition with zero: 5 + 0 = 5
         let addition = ElGamal::add(&encrypted_five, &encrypted_zero, &params.p);
@@ -337,8 +343,8 @@ mod tests {
         assert_eq!(decrypted_addition, five);
 
         // option two: re-encryption
-        let r = Random::random_lt_number(&q);
-        let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r, &params.p);
+        let r__ = Random::random_lt_number(&q);
+        let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r__, &pk);
         let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
         assert_eq!(decrypted_re_encryption, five);
         assert_eq!(decrypted_addition, decrypted_re_encryption);
