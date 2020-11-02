@@ -135,24 +135,19 @@ impl ElGamal {
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
     /// * `r`      - The random number used to re-encrypt the vote    
     /// * `pk`     - The public key used to re-encrypt the vote
-    pub fn shuffle(
-        encryptions: &Vec<Cipher>,
-        randoms: &Vec<BigUint>,
-        pk: &PublicKey,
-    ) -> Vec<Cipher> {
+    pub fn shuffle(encryptions: &[Cipher], randoms: &[BigUint], pk: &PublicKey) -> Vec<Cipher> {
         assert!(
             encryptions.len() == randoms.len(),
             "encryptions and randoms need to have the same length!"
         );
-        assert!(encryptions.len() > 0, "vectors cannot be empty!");
+        assert!(!encryptions.is_empty(), "vectors cannot be empty!");
         // generate a permutatinon of size of the encryptions
         let size = encryptions.len();
-        let permutation = Random::generate_permutation(&size);
+        let permutation: Vec<usize> = Random::generate_permutation(&size);
         let mut re_encryptions: Vec<Cipher> = Vec::new();
 
-        for index in 0..size {
+        for position in permutation {
             // get the encryption and the random value at the permutation position
-            let position = permutation[index];
             let encryption = &encryptions[position];
             let random = &randoms[position];
 
