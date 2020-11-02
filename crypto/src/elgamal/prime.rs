@@ -1,7 +1,6 @@
 use core::ops::{AddAssign, Sub};
 use num_bigint::{BigUint, RandBigInt};
 use num_traits::{One, Zero};
-use rand;
 
 pub struct Prime;
 
@@ -43,7 +42,7 @@ impl Prime {
             return true;
         }
 
-        if num % two.clone() == zero.clone() {
+        if num % two.clone() == zero {
             return false;
         }
 
@@ -54,8 +53,8 @@ impl Prime {
         let mut s: BigUint = Zero::zero();
 
         while d.clone() % two.clone() == zero.clone() {
-            d = d / two.clone();
-            s = s + one.clone();
+            d /= two.clone();
+            s += one.clone();
         }
 
         let mut k = 0;
@@ -74,7 +73,7 @@ impl Prime {
                     } else if x == one.clone() || r == (s.clone() - one.clone()) {
                         return false;
                     }
-                    r = r + one.clone();
+                    r += one.clone();
                 }
             }
             k += 2;
