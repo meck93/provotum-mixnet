@@ -91,6 +91,36 @@ impl ElGamal {
         }
         message
     }
+
+    /// Homomorphically adds two ElGamal encryption and returns the resulting encryption
+    ///
+    /// ## Arguments
+    ///
+    /// * `this`   - a Cipher { a, b } (ElGamal encryption)
+    /// * `other`  - a Cipher { a, b } (ElGamal encryption)
+    /// * `p` - The group modulus p (BigUint)    
+    pub fn add(this: &Cipher, other: &Cipher, p: &BigUint) -> Cipher {
+        let (a1, b1) = (this.a.clone(), this.b.clone());
+        let (a2, b2) = (other.a.clone(), other.b.clone());
+        Cipher {
+            a: a1.modmul(&a2, p),
+            b: b1.modmul(&b2, p),
+        }
+    }
+
+    /// Returns an ElGamal Re-Encryption of a message
+    /// - (a, b)   = (g^r, h^r*g^m)
+    /// - (a', b') = (a^r', (h^r)^r'*g^m)
+    ///
+    /// ## Arguments
+    ///
+    /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
+    /// * `r`      - The random number used to re-encrypt the vote    
+    /// * `pk`     - The public key used to re-encrypt the vote
+    pub fn re_encrypt(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
+        let p = &pk.params.p;
+        unimplemented!()
+    }
 }
 
 #[cfg(test)]
@@ -177,5 +207,102 @@ mod tests {
         // decrypt the encrypted_message & check that the messages are equal
         let decrypted_message = ElGamal::decrypt(&encrypted_message, &sk);
         assert_eq!(decrypted_message, message);
+    }
+
+    #[test]
+    fn it_should_add_two_zeros() {
+        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
+        let zero = BigUint::zero();
+
+        // encryption of zero
+        let r_one = BigUint::from(7u32);
+        let this = ElGamal::encrypt(&zero, &r_one, &pk);
+
+        // encryption of zero
+        let r_two = BigUint::from(5u32);
+        let other = ElGamal::encrypt(&zero, &r_two, &pk);
+
+        // add both encryptions: 0 + 0
+        let addition = ElGamal::add(&this, &other, &params.p);
+
+        // decrypt result: 0
+        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        assert_eq!(decrypted_addition, zero);
+    }
+
+    #[test]
+    fn it_should_add_one_and_zero() {
+        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
+        let zero = BigUint::zero();
+        let one = BigUint::one();
+
+        // encryption of zero
+        let r_one = BigUint::from(7u32);
+        let this = ElGamal::encrypt(&zero, &r_one, &pk);
+
+        // encryption of one
+        let r_two = BigUint::from(5u32);
+        let other = ElGamal::encrypt(&one, &r_two, &pk);
+
+        // add both encryptions: 0 + 1
+        let addition = ElGamal::add(&this, &other, &params.p);
+
+        // decrypt result: 1
+        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        assert_eq!(decrypted_addition, one);
+    }
+
+    #[test]
+    fn it_should_add_two_ones() {
+        let (params, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
+        let one = BigUint::one();
+        let expected_result = BigUint::from(2u32);
+
+        // encryption of one
+        let r_one = BigUint::from(7u32);
+        let this = ElGamal::encrypt(&one, &r_one, &pk);
+
+        // encryption of one
+        let r_two = BigUint::from(5u32);
+        let other = ElGamal::encrypt(&one, &r_two, &pk);
+
+        // add both encryptions: 1 + 1
+        let addition = ElGamal::add(&this, &other, &params.p);
+
+        // decrypt result: 2
+        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        assert_eq!(decrypted_addition, expected_result);
+    }
+
+    #[test]
+    fn it_should_add_many_and_result_equals_five() {
+        let (params, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457",         b"2",          b"1701411834604692317316873037");
+
+        let q = params.q();
+        let zero = BigUint::zero();
+        let one = BigUint::one();
+        let expected_result = BigUint::from(5u32);
+
+        // start with an encryption of zero
+        let r = BigUint::parse_bytes(b"123123123", 10).unwrap();
+        let mut base = ElGamal::encrypt(&zero, &r, &pk);
+
+        // add five encryptions of one
+        for _ in 0..5 {
+            let r = BigUint::parse_bytes(b"123123123", 10).unwrap();
+            let encryption_of_one = ElGamal::encrypt(&one, &r, &pk);
+            base = ElGamal::add(&base, &encryption_of_one, &params.p);
+        }
+
+        // add five encryptions of zero
+        for _ in 0..5 {
+            let r = BigUint::parse_bytes(b"123123123", 10).unwrap();
+            let encryption_of_zero = ElGamal::encrypt(&zero, &r, &pk);
+            base = ElGamal::add(&base, &encryption_of_zero, &params.p);
+        }
+
+        // decrypt result: 2
+        let decrypted_addition = ElGamal::decrypt(&base, &sk);
+        assert_eq!(decrypted_addition, expected_result);
     }
 }
