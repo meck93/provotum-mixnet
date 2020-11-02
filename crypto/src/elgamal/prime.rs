@@ -4,7 +4,7 @@ use num_traits::{One, Zero};
 use rand;
 
 // generate a random value: 0 < x < number
-pub fn random_biguint(number: &BigUint) -> BigUint {
+pub fn random_lt_number(number: &BigUint) -> BigUint {
     assert!(*number > BigUint::zero(), "q must be greater than zero!");
     let one = BigUint::one();
     let upper_bound = number.clone().sub(one);
@@ -17,7 +17,7 @@ pub fn random_biguint(number: &BigUint) -> BigUint {
 pub fn generate_random_prime(bit_size: u64) -> BigUint {
     let mut rng = rand::thread_rng();
     let mut candidate = rng.gen_biguint(bit_size);
-    let two = BigUint::from(2 as u32);
+    let two = BigUint::from(2u32);
 
     if &candidate % &two == BigUint::zero() {
         candidate.add_assign(BigUint::one())
@@ -46,7 +46,7 @@ pub fn is_prime(num: &BigUint, certainty: u32) -> bool {
 
     let num_less_one = num - one.clone();
 
-    // write n-1 as 2**s * d
+    // write n-12**s * d
     let mut d = num_less_one.clone();
     let mut s: BigUint = Zero::zero();
 
@@ -81,14 +81,14 @@ pub fn is_prime(num: &BigUint, certainty: u32) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{generate_random_prime, is_prime, random_biguint};
+    use super::{generate_random_prime, is_prime, random_lt_number};
     use num_bigint::BigUint;
 
     #[test]
     fn it_should_generate_random_number() {
         let number = BigUint::parse_bytes(b"123", 10).unwrap();
         for _ in 0..20 {
-            let random = self::random_biguint(&number);
+            let random = self::random_lt_number(&number);
             assert!(random < number);
         }
     }
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn check_that_11_is_prime() {
-        let number = BigUint::from(11 as u32);
+        let number = BigUint::from(11u32);
         let is_prime = self::is_prime(&number, 20);
         assert!(is_prime);
     }
@@ -124,7 +124,17 @@ mod tests {
     #[test]
     fn should_generate_random_prime() {
         let bit_size = 256;
+        let byte_size = 32;
+
         let prime = self::generate_random_prime(bit_size);
+
+        // check that the prime is in range bit_size - 8 <= prime <= bit_size
+        assert!(prime.bits().le(&bit_size));
+        assert!(prime.bits().ge(&(bit_size - 8)));
+
+        // check that the prime has the same number of bytes as requested
+        assert!(prime.to_bytes_le().len().eq(&byte_size));
+
         let is_prime = self::is_prime(&prime, 128);
         assert!(is_prime);
     }
