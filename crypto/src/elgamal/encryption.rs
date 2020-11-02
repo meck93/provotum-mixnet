@@ -92,7 +92,8 @@ impl ElGamal {
         message
     }
 
-    /// Homomorphically adds two ElGamal encryption and returns the resulting encryption
+    /// Homomorphically adds two ElGamal encryptions.
+    /// Returns an ElGamal encryption.
     ///
     /// ## Arguments
     ///
@@ -108,18 +109,23 @@ impl ElGamal {
         }
     }
 
-    /// Returns an ElGamal Re-Encryption of a message
+    /// Returns an ElGamal re-encryption of a message
     /// - (a, b)   = (g^r, h^r*g^m)
-    /// - (a', b') = (a^r', (h^r)^r'*g^m)
+    /// - (a', b') = (a^r', b^r')
+    ///
+    /// Note: The second part of b (g^m) can be dropped as a re-encryption is the same
+    ///       as a homomorphic addition with zero.
     ///
     /// ## Arguments
     ///
     /// * `cipher` - An ElGamal Encryption { a: BigUint, b: BigUint }
     /// * `r`      - The random number used to re-encrypt the vote    
     /// * `pk`     - The public key used to re-encrypt the vote
-    pub fn re_encrypt(cipher: &Cipher, r: &BigUint, pk: &PublicKey) -> Cipher {
-        let p = &pk.params.p;
-        unimplemented!()
+    pub fn re_encrypt(cipher: &Cipher, r: &BigUint, p: &BigUint) -> Cipher {
+        Cipher {
+            a: cipher.a.modmul(r, p),
+            b: cipher.b.modmul(r, p),
+        }
     }
 }
 
@@ -305,5 +311,36 @@ mod tests {
         // decrypt result: 5
         let decrypted_addition = ElGamal::decrypt(&base, &sk);
         assert_eq!(decrypted_addition, expected_result);
+    }
+
+    #[test]
+    fn it_should_reencrypt_a_message() {
+        let (params, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457",         b"2",          b"1701411834604692317316873037");
+
+        let q = params.q();
+        let zero = BigUint::zero();
+        let five = BigUint::from(5u32);
+
+        // encryption of zero
+        // use a random number < q
+        let r = Random::random_lt_number(&q);
+        let encrypted_zero = ElGamal::encrypt(&zero, &r, &pk);
+
+        // option 1: homomorphic addition
+        // use a random number < q
+        let r = Random::random_lt_number(&q);
+        let encrypted_five = ElGamal::encrypt(&five, &r, &pk);
+
+        // homomorphic addition with zero: 5 + 0 = 5
+        let addition = ElGamal::add(&encrypted_five, &encrypted_zero, &params.p);
+        let decrypted_addition = ElGamal::decrypt(&addition, &sk);
+        assert_eq!(decrypted_addition, five);
+
+        // option two: re-encryption
+        let r = Random::random_lt_number(&q);
+        let re_encrypted_five = ElGamal::re_encrypt(&encrypted_five, &r, &params.p);
+        let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
+        assert_eq!(decrypted_re_encryption, five);
+        assert_eq!(decrypted_addition, decrypted_re_encryption);
     }
 }
