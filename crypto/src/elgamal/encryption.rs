@@ -125,7 +125,7 @@ impl ElGamal {
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::{encryption::ElGamal, helper::Helper};
+    use crate::elgamal::{encryption::ElGamal, helper::Helper, random::Random};
     use num_bigint::BigUint;
     use num_traits::{One, Zero};
 
@@ -284,24 +284,25 @@ mod tests {
         let expected_result = BigUint::from(5u32);
 
         // start with an encryption of zero
-        let r = BigUint::parse_bytes(b"123123123", 10).unwrap();
+        // use a random number < q
+        let r = Random::random_lt_number(&q);
         let mut base = ElGamal::encrypt(&zero, &r, &pk);
 
         // add five encryptions of one
         for _ in 0..5 {
-            let r = BigUint::parse_bytes(b"123123123", 10).unwrap();
+            let r = Random::random_lt_number(&q);
             let encryption_of_one = ElGamal::encrypt(&one, &r, &pk);
             base = ElGamal::add(&base, &encryption_of_one, &params.p);
         }
 
         // add five encryptions of zero
         for _ in 0..5 {
-            let r = BigUint::parse_bytes(b"123123123", 10).unwrap();
+            let r = Random::random_lt_number(&q);
             let encryption_of_zero = ElGamal::encrypt(&zero, &r, &pk);
             base = ElGamal::add(&base, &encryption_of_zero, &params.p);
         }
 
-        // decrypt result: 2
+        // decrypt result: 5
         let decrypted_addition = ElGamal::decrypt(&base, &sk);
         assert_eq!(decrypted_addition, expected_result);
     }
