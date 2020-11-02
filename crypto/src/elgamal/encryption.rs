@@ -6,54 +6,55 @@ pub struct ElGamal;
 
 impl ElGamal {
     /// Returns an ElGamal Encryption of a message
-    /// - (c1, c2) = (g^r, h^r*g^m)
+    /// - (a, b) = (g^r, h^r*g^m)
     ///
     /// ## Arguments
     ///
-    /// * `m` - The message (BigUint)
+    /// * `m`  - The message (BigUint)
+    /// * `r`  - The random number used to encrypt the vote
     /// * `pk` - The public key used to encrypt the vote
     pub fn encrypt(m: &BigUint, r: &BigUint, pk: &PublicKey) -> Cipher {
         let g = &pk.params.g;
         let p = &pk.params.p;
         let h = &pk.h;
 
-        // c1 = g^r
-        let c1 = g.modpow(r, p);
+        // a = g^r
+        let a = g.modpow(r, p);
 
         // encode the message: g^m (exponential elgamal)
         let enc_m = ElGamal::encode_message(m, g, p);
 
-        // c2 = h^r*g^m
+        // b = h^r*g^m
         let h_pow_r = h.modpow(r, p);
-        let c2 = h_pow_r.modmul(&enc_m, p);
+        let b = h_pow_r.modmul(&enc_m, p);
 
-        Cipher { a: c1, b: c2 }
+        Cipher { a, b }
     }
 
     /// Returns the plaintext contained in an ElGamal Encryption
-    /// - mh = c2 * (c1^x)^-1
+    /// - mh = b * (a^x)^-1
     /// - m = log mh = log g^m
     ///
     /// ## Arguments
     ///
-    /// * `cipher` - The ElGamal Encryption (c1: BigUint, c2: BigUint)
-    /// * `sk` - The private key used to decrypt the vote
+    /// * `cipher` - The ElGamal Encryption (a: BigUint, b: BigUint)
+    /// * `sk`     - The private key used to decrypt the vote
     pub fn decrypt(cipher: &Cipher, sk: &PrivateKey) -> BigUint {
-        let c1 = &cipher.a;
-        let c2 = &cipher.b;
+        let a = &cipher.a;
+        let b = &cipher.b;
 
         let g = &sk.params.g;
         let p = &sk.params.p;
         let x = &sk.x;
 
-        // c1 = g^r -> c1^x = g^r^x
-        let s = c1.modpow(x, p);
+        // a = g^r -> a^x = g^r^x
+        let s = a.modpow(x, p);
 
         // compute multiplicative inverse of s
         let s_1 = s.invmod(p).unwrap();
 
-        // c2 = g^m*h^r -> mh = c2 * s^-1
-        let mh = c2.modmul(&s_1, p);
+        // b = g^m*h^r -> mh = b * s^-1
+        let mh = b.modmul(&s_1, p);
 
         // brute force discrete logarithm
         ElGamal::decode_message(&mh, g, p)
@@ -94,17 +95,13 @@ impl ElGamal {
 
 #[cfg(test)]
 mod tests {
-    use crate::elgamal::{encryption::ElGamal, helper::Helper, types::ElGamalParams};
+    use crate::elgamal::{encryption::ElGamal, helper::Helper};
     use num_bigint::BigUint;
     use num_traits::{One, Zero};
 
     #[test]
     fn it_should_encode_a_message() {
-        let params = ElGamalParams {
-            p: BigUint::from(7u32),
-            // and, therefore, q -> 3
-            g: BigUint::from(2u32),
-        };
+        let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
         let message = BigUint::from(2u32);
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
         assert_eq!(encoded_message, BigUint::from(4u32));
@@ -112,11 +109,7 @@ mod tests {
 
     #[test]
     fn it_should_decode_0() {
-        let params = ElGamalParams {
-            p: BigUint::from(7u32),
-            // and, therefore, q -> 3
-            g: BigUint::from(2u32),
-        };
+        let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
         let zero = BigUint::zero();
         let message = zero.clone();
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
@@ -126,11 +119,7 @@ mod tests {
 
     #[test]
     fn it_should_decode_1() {
-        let params = ElGamalParams {
-            p: BigUint::from(7u32),
-            // and, therefore, q -> 3
-            g: BigUint::from(2u32),
-        };
+        let (params, _, _) = Helper::setup_system(b"7", b"2", b"2");
         let one = BigUint::one();
         let message = one.clone();
         let encoded_message = ElGamal::encode_message(&message, &params.g, &params.p);
@@ -140,11 +129,7 @@ mod tests {
 
     #[test]
     fn it_should_decode_25() {
-        let params = ElGamalParams {
-            p: BigUint::from(23u32),
-            // and, therefore, q -> 11
-            g: BigUint::from(2u32),
-        };
+        let (params, _, _) = Helper::setup_system(b"23", b"2", b"9");
 
         // choose a message m > 1 && m < q
         let nine = BigUint::from(9u32);
@@ -156,15 +141,7 @@ mod tests {
 
     #[test]
     fn it_should_encrypt() {
-        let params = ElGamalParams {
-            p: BigUint::from(7u32),
-            // and, therefore, q -> 3
-            g: BigUint::from(2u32),
-        };
-
-        // generate a public/private key pair
-        let r = BigUint::from(2u32);
-        let (pk, _sk) = Helper::generate_key_pair(&params, &r);
+        let (_, _, pk) = Helper::setup_system(b"7", b"2", b"2");
 
         // the value of the message: 1
         let message = BigUint::from(1u32);
@@ -186,15 +163,7 @@ mod tests {
 
     #[test]
     fn it_should_encrypt_decrypt_2() {
-        let params = ElGamalParams {
-            p: BigUint::from(23u32),
-            // and, therefore, q -> 11
-            g: BigUint::from(2u32),
-        };
-
-        // generate a public/private key pair
-        let r = BigUint::from(9u32);
-        let (pk, sk) = Helper::generate_key_pair(&params, &r);
+        let (_, sk, pk) = Helper::setup_system(b"23", b"2", b"9");
 
         // the value of the message: 2
         let message = BigUint::from(2u32);
