@@ -7,21 +7,21 @@ use rand::Rng;
 pub struct Random;
 
 impl Random {
-    pub fn generate_permutation(size: &u128) -> Vec<u128> {
+    pub fn generate_permutation(size: &usize) -> Vec<usize> {
         assert!(*size > 0, "size must be greater than zero!");
 
         let mut rng = rand::thread_rng();
-        let mut permutation: Vec<u128> = Vec::new();
+        let mut permutation: Vec<usize> = Vec::new();
 
         // vector containing the range of values from 0 up to the size of the vector - 1
-        let mut range: Vec<u128> = (0..*size).collect();
+        let mut range: Vec<usize> = (0..*size).collect();
 
         for index in 0..*size {
             // get random integer
             let random = rng.gen_range(index, size);
 
             // get the element in the range at the random position
-            let value = range.get(random as usize);
+            let value = range.get(random);
 
             match value {
                 Some(value) => {
@@ -29,7 +29,7 @@ impl Random {
                     permutation.push(*value);
 
                     // swap positions
-                    range[random as usize] = range[index as usize];
+                    range[random] = range[index];
                 }
                 None => panic!(
                     "Index out of bounds: index: {:?}, upper bound: {:?}",
@@ -171,7 +171,7 @@ mod tests {
         assert!(prime.bits().ge(&(bit_size - 8)));
 
         // check that the prime has the same number of bytes as requested
-        assert!(prime.to_bytes_le().len().eq(&byte_size));
+        assert!(prime.to_bytes_le().len() == byte_size);
 
         let is_prime = Random::is_prime(&prime, 128);
         assert!(is_prime);
@@ -180,17 +180,17 @@ mod tests {
     #[test]
     #[should_panic(expected = "size must be greater than zero!")]
     fn permutation_size_zero_should_panic() {
-        let size = 0u128;
+        let size = 0;
         Random::generate_permutation(&size);
     }
 
     #[test]
     fn it_should_generate_a_permutation_for_three_numbers() {
-        let size = 3u128;
+        let size = 3;
         let permutation = Random::generate_permutation(&size);
 
         // check that the permutation has the expected size
-        assert!(permutation.len().eq(&(size as usize)));
+        assert!(permutation.len() == (size as usize));
 
         // check that 0, 1, 2 occur at least once each
         assert!(permutation.iter().any(|&value| value == 0));
