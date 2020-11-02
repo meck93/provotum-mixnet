@@ -140,6 +140,11 @@ impl ElGamal {
         randoms: &Vec<BigUint>,
         pk: &PublicKey,
     ) -> Vec<Cipher> {
+        assert!(
+            encryptions.len() == randoms.len(),
+            "encryptions and randoms need to have the same length!"
+        );
+        assert!(encryptions.len() > 0, "vectors cannot be empty!");
         // generate a permutatinon of size of the encryptions
         let size = encryptions.len();
         let permutation = Random::generate_permutation(&size);
@@ -381,6 +386,32 @@ mod tests {
         let decrypted_re_encryption = ElGamal::decrypt(&re_encrypted_five, &sk);
         assert_eq!(decrypted_re_encryption, five);
         assert_eq!(decrypted_addition, decrypted_re_encryption);
+    }
+
+    #[test]
+    #[should_panic(expected = "encryptions and randoms need to have the same length!")]
+    fn shuffle_vectors_different_size_should_panic() {
+        let (_, _, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+        let encryptions = vec![];
+        let randoms = vec![BigUint::one()];
+        ElGamal::shuffle(&encryptions, &randoms, &pk);
+    }
+
+    #[test]
+    #[should_panic(expected = "vectors cannot be empty!")]
+    fn shuffle_vectors_size_zero_should_panic() {
+        let (_, _, pk) = Helper::setup_system(
+            b"170141183460469231731687303715884105727",
+            b"2",
+            b"1701411834604692317316",
+        );
+        let encryptions = vec![];
+        let randoms = vec![];
+        ElGamal::shuffle(&encryptions, &randoms, &pk);
     }
 
     #[test]
