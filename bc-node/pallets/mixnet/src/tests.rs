@@ -36,18 +36,18 @@ fn store_small_dummy_vote() {
         let random = BigUint::from(7u32);
 
         // encrypt the message -> encrypted message
-        // cipher = the crypto crate version of a vote { a: BigUint, b: BigUint }
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
         let cipher: Cipher = ElGamal::encrypt(&message, &random, &pk);
 
-        // transform the vote into a from that the blockchain can handle
+        // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
         let encrypted_vote: Ballot = cipher.clone().into();
         let voter = Origin::signed(1);
 
-        let vote_submission_result = MixnetModule::cast_encrypted_ballot(voter, encrypted_vote.clone());
+        let vote_submission_result = MixnetModule::cast_ballot(voter, encrypted_vote.clone());
         assert_ok!(vote_submission_result);
 
-        // fetch the submitted vote
+        // fetch the submitted ballot
         let votes_from_chain: Vec<Ballot> = MixnetModule::ballots();
         assert!(votes_from_chain.len() > 0);
 
@@ -74,18 +74,18 @@ fn store_real_size_vote() {
         let random = BigUint::parse_bytes(b"170141183460469231731687303715884", 10).unwrap();
 
         // encrypt the message -> encrypted message
-        // cipher = the crypto crate version of a vote { a: BigUint, b: BigUint }
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
         let cipher: Cipher = ElGamal::encrypt(&message, &random, &pk);
 
-        // transform the vote into a from that the blockchain can handle
+        // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
         let encrypted_vote: Ballot = cipher.clone().into();
         let voter = Origin::signed(1);
 
-        let vote_submission_result = MixnetModule::cast_encrypted_ballot(voter, encrypted_vote.clone());
+        let vote_submission_result = MixnetModule::cast_ballot(voter, encrypted_vote.clone());
         assert_ok!(vote_submission_result);
 
-        // fetch the submitted vote
+        // fetch the submitted ballot
         let votes_from_chain: Vec<Ballot> = MixnetModule::ballots();
         assert!(votes_from_chain.len() > 0);
 
@@ -98,5 +98,56 @@ fn store_real_size_vote() {
 
         let decrypted_vote = ElGamal::decrypt(&cipher_from_chain, &sk);
         assert_eq!(message, decrypted_vote);
+    })
+}
+
+#[test]
+fn shuffle_votes() {
+    new_test_ext().execute_with(|| {
+        let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+        b"2", 
+        b"1701411834604692317316873037");
+        let messages = [BigUint::from(5u32), BigUint::from(10u32), BigUint::from(15u32)];
+        
+        // encrypt the message -> encrypted message
+        // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
+        let randoms = [b"170141183460469231731687303715884", b"170141183460469231731687303700084", b"170141183400069231731687303700084"];
+
+        for index in 0..3 {
+            let random = BigUint::parse_bytes(randoms[index], 10).unwrap();
+            let cipher: Cipher = ElGamal::encrypt(&messages[index], &random, &pk);
+    
+            // transform the ballot into a from that the blockchain can handle
+            // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
+            let encrypted_vote: Ballot = cipher.clone().into();
+            let voter = Origin::signed(1);
+    
+            let vote_submission_result = MixnetModule::cast_ballot(voter, encrypted_vote.clone());
+            assert_ok!(vote_submission_result);
+
+        }
+        
+        // shuffle the votes
+        let voter = Origin::signed(1);
+        let shuffle_result = MixnetModule::trigger_shuffle(voter, pk.into());
+        assert_ok!(shuffle_result);
+
+        // fetch the submitted ballot
+        let votes_from_chain: Vec<Ballot> = MixnetModule::ballots();
+        assert!(votes_from_chain.len() == 3);
+
+        let mut decrypted_votes = vec![];
+
+        for vote_from_chain in votes_from_chain {            
+            // transform the Ballot -> Cipher          
+            let cipher_from_chain: Cipher = vote_from_chain.into();    
+            let decrypted_vote = ElGamal::decrypt(&cipher_from_chain, &sk);
+            decrypted_votes.push(decrypted_vote);
+        }
+
+        // check that at least one value is 5, 10, 15
+        assert!(decrypted_votes.iter().any(|decrypted_vote| *decrypted_vote == messages[0]));        
+        assert!(decrypted_votes.iter().any(|decrypted_vote| *decrypted_vote == messages[1]));        
+        assert!(decrypted_votes.iter().any(|decrypted_vote| *decrypted_vote == messages[2]));
     })
 }
