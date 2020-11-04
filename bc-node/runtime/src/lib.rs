@@ -283,7 +283,7 @@ construct_runtime!(
         TransactionPayment: pallet_transaction_payment::{Module, Storage},
         Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
-        // Include the custom logic from the template pallet in the runtime.
+        // Include the custom logic from the mixnet pallet in the runtime.
         MixnetModule: pallet_mixnet::{Module, Call, Storage, Event<T>},
     }
 );
