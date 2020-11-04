@@ -25,8 +25,7 @@ pub trait Trait: frame_system::Trait {
 
 // The pallet's runtime storage items.
 decl_storage! {
-    // TODO: update name TemplateModule
-    trait Store for Module<T: Trait> as TemplateModule {
+    trait Store for Module<T: Trait> as MixnetModule {
         Something get(fn something): Option<u32>;
         Ballots get(fn ballots): Vec<Ballot>;
         Voters get(fn voters): Vec<T::AccountId>;

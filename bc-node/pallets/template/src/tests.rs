@@ -11,9 +11,9 @@ use num_bigint::BigUint;
 fn it_works_for_default_value() {
     new_test_ext().execute_with(|| {
         // Dispatch a signed extrinsic.
-        assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
+        assert_ok!(MixnetModule::do_something(Origin::signed(1), 42));
         // Read pallet storage and assert an expected result.
-        assert_eq!(TemplateModule::something(), Some(42));
+        assert_eq!(MixnetModule::something(), Some(42));
     });
 }
 
@@ -22,7 +22,7 @@ fn correct_error_for_none_value() {
     new_test_ext().execute_with(|| {
         // Ensure the expected error is thrown when no value is present.
         assert_noop!(
-            TemplateModule::cause_error(Origin::signed(1)),
+            MixnetModule::cause_error(Origin::signed(1)),
             Error::<Test>::NoneValue
         );
     });
@@ -44,11 +44,11 @@ fn store_small_dummy_vote() {
         let encrypted_vote: Ballot = cipher.clone().into();
         let voter = Origin::signed(1);
 
-        let vote_submission_result = TemplateModule::cast_encrypted_ballot(voter, encrypted_vote.clone());
+        let vote_submission_result = MixnetModule::cast_encrypted_ballot(voter, encrypted_vote.clone());
         assert_ok!(vote_submission_result);
 
         // fetch the submitted vote
-        let votes_from_chain: Vec<Ballot> = TemplateModule::ballots();
+        let votes_from_chain: Vec<Ballot> = MixnetModule::ballots();
         assert!(votes_from_chain.len() > 0);
 
         let vote_from_chain: Ballot = votes_from_chain[0].clone();
@@ -82,11 +82,11 @@ fn store_real_size_vote() {
         let encrypted_vote: Ballot = cipher.clone().into();
         let voter = Origin::signed(1);
 
-        let vote_submission_result = TemplateModule::cast_encrypted_ballot(voter, encrypted_vote.clone());
+        let vote_submission_result = MixnetModule::cast_encrypted_ballot(voter, encrypted_vote.clone());
         assert_ok!(vote_submission_result);
 
         // fetch the submitted vote
-        let votes_from_chain: Vec<Ballot> = TemplateModule::ballots();
+        let votes_from_chain: Vec<Ballot> = MixnetModule::ballots();
         assert!(votes_from_chain.len() > 0);
 
         let vote_from_chain: Ballot = votes_from_chain[0].clone();
