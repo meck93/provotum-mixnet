@@ -23,7 +23,7 @@ fn correct_error_for_none_value() {
         // Ensure the expected error is thrown when no value is present.
         assert_noop!(
             MixnetModule::cause_error(Origin::signed(1)),
-            Error::<Test>::NoneValue
+            Error::<TestRuntime>::NoneValue
         );
     });
 }
