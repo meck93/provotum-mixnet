@@ -278,7 +278,7 @@ impl pallet_mixnet::Trait for Runtime {
 impl pallet_offchain_mixer::Trait for Runtime {
     type Event = Event;
     type Call = Call;
-    type AuthorityId = pallet_offchain_mixer::crypto::TestAuthId;
+    type AuthorityId = pallet_offchain_mixer::keys::TestAuthId;
 }
 
 // Payload data to be signed when making signed transaction from off-chain workers

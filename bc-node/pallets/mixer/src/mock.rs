@@ -82,7 +82,7 @@ parameter_types! {
 impl Trait for TestRuntime {
     type Call = Call<TestRuntime>;
     type Event = TestEvent;
-    type AuthorityId = crypto::TestAuthId;
+    type AuthorityId = keys::TestAuthId;
 }
 
 impl<LocalCall> system::offchain::CreateSignedTransaction<LocalCall> for TestRuntime
@@ -134,7 +134,7 @@ impl ExternalityBuilder {
         let keystore = KeyStore::new();
         keystore
             .write()
-            .sr25519_generate_new(KEY_TYPE, Some(&format!("{}/hunter1", PHRASE)))
+            .sr25519_generate_new(keys::KEY_TYPE, Some(&format!("{}/hunter1", PHRASE)))
             .unwrap();
 
         let storage = system::GenesisConfig::default()

@@ -7,6 +7,8 @@ mod mock;
 #[macro_use]
 mod tests;
 
+pub mod keys;
+
 use codec::{Decode, Encode};
 use core::convert::TryInto;
 use frame_support::{
@@ -19,7 +21,6 @@ use frame_system::{
         SignedPayload, Signer, SigningTypes, SubmitTransaction,
     },
 };
-use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain as rt_offchain,
     transaction_validity::{
@@ -29,48 +30,8 @@ use sp_runtime::{
 };
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 
-/// Defines application identifier for crypto keys of this module.
-///
-/// Every module that deals with signatures needs to declare its unique identifier for its crypto keys.
-/// When an offchain worker is signing transactions it's going to request keys from type
-/// `KeyTypeId` via the keystore to sign the transaction.
-/// The keys can be inserted manually via RPC (see `author_insertKey`).
-pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
-pub const NUM_VEC_LEN: usize = 10;
-
-/// The type to sign and send transactions.
+/// the type to sign and send transactions.
 pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
-pub const LOCK_BLOCK_EXPIRATION: u32 = 3; // in block number
-
-/// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrapper.
-/// We can utilize the supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
-/// them with the pallet-specific identifier.
-pub mod crypto {
-    use crate::KEY_TYPE;
-    use sp_core::sr25519::Signature as Sr25519Signature;
-    use sp_runtime::app_crypto::{app_crypto, sr25519};
-    use sp_runtime::{traits::Verify, MultiSignature, MultiSigner};
-
-    app_crypto!(sr25519, KEY_TYPE);
-
-    pub struct TestAuthId;
-
-    // implemented for mixer-pallet
-    impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
-        type RuntimeAppPublic = Public;
-        type GenericSignature = sp_core::sr25519::Signature;
-        type GenericPublic = sp_core::sr25519::Public;
-    }
-
-    // implemented for mock runtime in test
-    impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
-        for TestAuthId
-    {
-        type RuntimeAppPublic = Public;
-        type GenericSignature = sp_core::sr25519::Signature;
-        type GenericPublic = sp_core::sr25519::Public;
-    }
-}
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Payload<Public> {
@@ -96,7 +57,7 @@ pub trait Trait: system::Trait + CreateSignedTransaction<Call<Self>> {
 
 decl_storage! {
     trait Store for Module<T: Trait> as Example {
-        /// A vector of recently submitted numbers. Bounded by NUM_VEC_LEN
+        /// A vector of recently submitted numbers (at most 10).
         Numbers get(fn numbers): VecDeque<u64>;
     }
 }
@@ -197,7 +158,7 @@ impl<T: Trait> Module<T> {
     /// removing an element from the head if reaching the bounded length.
     fn append_or_replace_number(number: u64) {
         Numbers::mutate(|numbers| {
-            if numbers.len() == NUM_VEC_LEN {
+            if numbers.len() == 10 {
                 let _ = numbers.pop_front();
             }
             numbers.push_back(number);
