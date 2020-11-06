@@ -14,6 +14,7 @@ impl_outer_origin! {
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TestRuntime;
+
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub const MaximumBlockWeight: Weight = 1024;
