@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![feature(unsized_locals)]
 
 #[cfg(test)]
 mod mock;
@@ -13,6 +14,7 @@ use codec::{Decode, Encode};
 use core::convert::TryInto;
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
+    weights::Pays,
 };
 use frame_system::{
     self as system, ensure_none, ensure_signed,
@@ -21,6 +23,10 @@ use frame_system::{
         SignedPayload, Signer, SigningTypes, SubmitTransaction,
     },
 };
+use rand_chacha::rand_core::RngCore;
+use rand_chacha::rand_core::SeedableRng;
+use rand_chacha::ChaChaRng;
+use sp_io::offchain as io_offchain;
 use sp_runtime::{
     offchain as rt_offchain,
     transaction_validity::{
@@ -28,7 +34,7 @@ use sp_runtime::{
     },
     RuntimeDebug,
 };
-use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+use sp_std::{collections::vec_deque::VecDeque, if_std, prelude::*, str};
 
 /// the type to sign and send transactions.
 pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
@@ -87,6 +93,9 @@ decl_error! {
 
         // Error returned when making unsigned transactions with signed payloads in off-chain worker
         OffchainUnsignedTxSignedPayloadError,
+
+        // Error returned when failing to get randomness
+        RandomnessGenerationError,
     }
 }
 
@@ -129,6 +138,19 @@ decl_module! {
             Ok(())
         }
 
+        #[weight = (10000, Pays::No)]
+        pub fn random(origin) -> DispatchResult
+        {
+            let _ = ensure_signed(origin)?;
+            let size = 16;
+            let result = Self::get_random(size);
+            match result {
+                Ok(_) => (),
+                Err(error) => debug::info!("getting randomness failed! {:?}", error),
+            };
+            Ok(())
+        }
+
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("Entering off-chain worker");
 
@@ -136,7 +158,7 @@ decl_module! {
             // 1. Sending signed transaction from off-chain worker
             // 2. Sending unsigned transaction from off-chain worker
             // 3. Sending unsigned transactions with signed payloads from off-chain worker
-            const TRANSACTION_TYPES: usize = 4;
+            const TRANSACTION_TYPES: usize = 3;
             let result = match block_number.try_into()
                 .map_or(TRANSACTION_TYPES, |bn| bn % TRANSACTION_TYPES)
             {
@@ -149,11 +171,41 @@ decl_module! {
             if let Err(e) = result {
                 debug::error!("offchain_worker error: {:?}", e);
             }
+
+            // always call random
+            let size = 16;
+            let random = Self::get_random(size);
+            match random {
+                Ok(_) => (),
+                Err(error) => debug::info!("getting randomness failed! {:?}", error),
+            };
         }
     }
 }
 
 impl<T: Trait> Module<T> {
+    /// secure random number generation using OS randomness
+    fn get_random(size: usize) -> Result<(), Error<T>> {
+        // 32 byte random seed
+        let seed: [u8; 32] = io_offchain::random_seed();
+        debug::info!("offchain-worker random seed: {:?}", seed);
+        let mut rng = ChaChaRng::from_seed(seed);
+
+        // use chacha20 to produce random vector [u8] of size: size
+        let mut bytes = vec![0; size];
+        let rand = rng.try_fill_bytes(&mut bytes);
+        match rand {
+            Ok(value) => {
+                debug::info!("random bytes: {:?}", bytes);
+                Ok(value)
+            }
+            Err(error) => {
+                debug::error!("randomness generation error: {:?}", error);
+                Err(<Error<T>>::RandomnessGenerationError)
+            }
+        }
+    }
+
     /// Append a new number to the tail of the list,
     /// removing an element from the head if reaching the bounded length.
     fn append_or_replace_number(number: u64) {

@@ -3512,6 +3512,7 @@ dependencies = [
  "pallet-timestamp",
  "parity-scale-codec",
  "parking_lot 0.10.2",
+ "rand_chacha 0.2.2",
  "sp-core",
  "sp-io",
  "sp-runtime",

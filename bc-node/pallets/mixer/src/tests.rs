@@ -66,3 +66,14 @@ fn test_offchain_unsigned_tx() {
         assert_eq!(tx.call, Call::submit_number_unsigned(num));
     });
 }
+
+#[test]
+fn random_number_is_generated() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let origin = Origin::signed(acct);
+        let tx_result = OffchainModule::random(origin);
+        assert_ok!(tx_result);
+    });
+}
