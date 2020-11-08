@@ -3507,8 +3507,11 @@ dependencies = [
 name = "pallet-offchain-mixer"
 version = "2.0.0"
 dependencies = [
+ "crypto",
  "frame-support",
  "frame-system",
+ "num-bigint 0.3.0",
+ "num-traits",
  "pallet-timestamp",
  "parity-scale-codec",
  "parking_lot 0.10.2",

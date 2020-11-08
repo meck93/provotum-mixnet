@@ -23,6 +23,8 @@ use frame_system::{
         SignedPayload, Signer, SigningTypes, SubmitTransaction,
     },
 };
+use num_bigint::BigUint;
+use num_traits::{One, Zero};
 use rand_chacha::rand_core::RngCore;
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaChaRng;
@@ -34,7 +36,7 @@ use sp_runtime::{
     },
     RuntimeDebug,
 };
-use sp_std::{collections::vec_deque::VecDeque, if_std, prelude::*, str};
+use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 
 /// the type to sign and send transactions.
 pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
@@ -96,6 +98,9 @@ decl_error! {
 
         // Error returned when failing to get randomness
         RandomnessGenerationError,
+
+        // Error returned when upper bound is zero
+        RandomnessUpperBoundZeroError,
     }
 }
 
@@ -142,12 +147,12 @@ decl_module! {
         pub fn random(origin) -> DispatchResult
         {
             let _ = ensure_signed(origin)?;
-            let size = 16;
-            let result = Self::get_random(size);
-            match result {
-                Ok(_) => (),
-                Err(error) => debug::info!("getting randomness failed! {:?}", error),
-            };
+            let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+            let random = Self::get_random_less_than(&number);
+            match random {
+                Ok(value) => debug::info!("random value: {:?}", value),
+                Err(error) => debug::error!("offchain_worker error: {:?}", error),
+            }
             Ok(())
         }
 
@@ -172,20 +177,19 @@ decl_module! {
                 debug::error!("offchain_worker error: {:?}", e);
             }
 
-            // always call random
-            let size = 16;
-            let random = Self::get_random(size);
+            let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+            let random = Self::get_random_less_than(&number);
             match random {
-                Ok(_) => (),
-                Err(error) => debug::info!("getting randomness failed! {:?}", error),
-            };
+                Ok(value) => debug::info!("random value: {:?}", value),
+                Err(error) => debug::error!("offchain_worker error: {:?}", error),
+            }
         }
     }
 }
 
 impl<T: Trait> Module<T> {
     /// secure random number generation using OS randomness
-    fn get_random(size: usize) -> Result<(), Error<T>> {
+    fn get_random_bytes(size: usize) -> Result<Vec<u8>, Error<T>> {
         // 32 byte random seed
         let seed: [u8; 32] = io_offchain::random_seed();
         debug::info!("offchain-worker random seed: {:?}", seed);
@@ -193,17 +197,44 @@ impl<T: Trait> Module<T> {
 
         // use chacha20 to produce random vector [u8] of size: size
         let mut bytes = vec![0; size];
-        let rand = rng.try_fill_bytes(&mut bytes);
-        match rand {
-            Ok(value) => {
-                debug::info!("random bytes: {:?}", bytes);
-                Ok(value)
-            }
-            Err(error) => {
-                debug::error!("randomness generation error: {:?}", error);
-                Err(<Error<T>>::RandomnessGenerationError)
-            }
+
+        // try to fill the byte array with random values
+        // if successful, returns the random bytes. else, an error.
+        let random_value_generation = rng.try_fill_bytes(&mut bytes);
+        if random_value_generation.is_ok() {
+            return Ok(bytes);
+        } else {
+            let error = random_value_generation.unwrap_err();
+            debug::error!("randomness generation error: {:?}", error);
+            return Err(<Error<T>>::RandomnessGenerationError);
         }
+    }
+
+    // generate a random value: 0 < random < number
+    fn get_random_less_than(number: &BigUint) -> Result<BigUint, Error<T>> {
+        if *number <= BigUint::zero() {
+            return Err(<Error<T>>::RandomnessUpperBoundZeroError);
+        }
+
+        // determine the upper bound for the random value
+        let upper_bound: BigUint = number.clone() - BigUint::one();
+        debug::info!("upper bound: {:?}", upper_bound);
+
+        // the upper bound but in terms of bytes
+        let size: usize = upper_bound.to_bytes_be().len();
+        debug::info!("size (# of bytes): {:?}", size);
+
+        // fill an array of size: <size> with random bytes
+        let result = Self::get_random_bytes(size);
+
+        if result.is_ok() {
+            let value = result.unwrap();
+            // try to transform the byte array into a biguint
+            let random = BigUint::from_bytes_be(&value);
+            // ensure: random < number
+            return Ok(random % number);
+        }
+        Err(result.unwrap_err())
     }
 
     /// Append a new number to the tail of the list,
