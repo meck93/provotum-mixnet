@@ -25,6 +25,8 @@ use frame_system::{
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
+use rand::distributions::Distribution;
+use rand::distributions::Uniform;
 use rand_chacha::rand_core::RngCore;
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaChaRng;
@@ -101,6 +103,9 @@ decl_error! {
 
         // Error returned when upper bound is zero
         RandomnessUpperBoundZeroError,
+
+        // Error returned when error occurs in gen_random_range
+        RandomRangeError,
     }
 }
 
@@ -178,9 +183,17 @@ decl_module! {
             }
 
             let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+
             let random = Self::get_random_less_than(&number);
             match random {
                 Ok(value) => debug::info!("random value: {:?}", value),
+                Err(error) => debug::error!("offchain_worker error: {:?}", error),
+            }
+
+            let lower: BigUint = BigUint::one();
+            let value = Self::get_random_range(&lower, &number);
+            match value {
+                Ok(val) => debug::info!("random value in range. lower: {:?}, upper: {:?}, value: {:?}", lower, number, val),
                 Err(error) => debug::error!("offchain_worker error: {:?}", error),
             }
         }
@@ -188,14 +201,16 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
+    fn get_prng() -> ChaChaRng {
+        // 32 byte array as random seed
+        let seed: [u8; 32] = io_offchain::random_seed();
+        ChaChaRng::from_seed(seed)
+    }
+
     /// secure random number generation using OS randomness
     fn get_random_bytes(size: usize) -> Result<Vec<u8>, Error<T>> {
-        // 32 byte random seed
-        let seed: [u8; 32] = io_offchain::random_seed();
-        debug::info!("offchain-worker random seed: {:?}", seed);
-        let mut rng = ChaChaRng::from_seed(seed);
-
         // use chacha20 to produce random vector [u8] of size: size
+        let mut rng = Self::get_prng();
         let mut bytes = vec![0; size];
 
         // try to fill the byte array with random values
@@ -218,11 +233,9 @@ impl<T: Trait> Module<T> {
 
         // determine the upper bound for the random value
         let upper_bound: BigUint = number.clone() - BigUint::one();
-        debug::info!("upper bound: {:?}", upper_bound);
 
         // the upper bound but in terms of bytes
         let size: usize = upper_bound.to_bytes_be().len();
-        debug::info!("size (# of bytes): {:?}", size);
 
         // fill an array of size: <size> with random bytes
         let result = Self::get_random_bytes(size);
@@ -235,6 +248,22 @@ impl<T: Trait> Module<T> {
             return Ok(random % number);
         }
         Err(result.unwrap_err())
+    }
+
+    fn get_random_range(lower: &BigUint, upper: &BigUint) -> Result<BigUint, Error<T>> {
+        if *lower < BigUint::zero() {
+            return Err(<Error<T>>::RandomRangeError);
+        }
+        if *upper <= BigUint::zero() {
+            return Err(<Error<T>>::RandomRangeError);
+        }
+        if *lower >= *upper {
+            return Err(<Error<T>>::RandomRangeError);
+        }
+        let mut rng = Self::get_prng();
+        let uniform = Uniform::new(lower, upper);
+        let value: BigUint = uniform.sample(&mut rng);
+        Ok(value)
     }
 
     /// Append a new number to the tail of the list,

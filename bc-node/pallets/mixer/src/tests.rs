@@ -2,9 +2,10 @@ use crate::mock::*;
 use crate::*;
 use codec::Decode;
 use frame_support::assert_ok;
+use sp_std::if_std;
 
 #[test]
-fn submit_number_signed_works() {
+fn test_submit_number_signed_works() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // call submit_number_signed
@@ -106,5 +107,44 @@ fn test_get_random_number_less_than_should_panic_number_is_zero() {
         OffchainModule::get_random_less_than(&upper_bound).expect_err(
             "The returned value should be: '<Error<T>>::RandomnessUpperBoundZeroError'",
         );
+    });
+}
+
+#[test]
+fn test_get_random_range() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let lower: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
+        let upper: BigUint = BigUint::parse_bytes(b"100", 10).unwrap();
+        let value = OffchainModule::get_random_range(&lower, &upper).unwrap();
+        
+        assert!(value < upper);
+        assert!(lower < value);
+        
+        if_std! {
+            println!("random value in range. lower: {:?}, upper: {:?}, value: {:?}", lower, upper, value);
+        }
+    });
+}
+
+#[test]
+fn test_get_random_range_upper_is_zero() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let lower: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
+        let upper: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
+        OffchainModule::get_random_range(&lower, &upper)
+            .expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
+    });
+}
+
+#[test]
+fn test_get_random_range_upper_is_not_larger_than_lower() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let lower: BigUint = BigUint::parse_bytes(b"5", 10).unwrap();
+        let upper: BigUint = BigUint::parse_bytes(b"5", 10).unwrap();
+        OffchainModule::get_random_range(&lower, &upper)
+            .expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
     });
 }
