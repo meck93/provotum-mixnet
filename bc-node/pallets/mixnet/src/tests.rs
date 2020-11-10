@@ -1,6 +1,6 @@
 use crate::types::Ballot;
 use crate::mock::*;
-use crypto::elgamal::{encryption::ElGamal, helper::Helper, types::Cipher};
+use crypto::elgamal::{encryption::ElGamal, helper::Helper, types::{Cipher, PublicKey as ElGamalPK}};
 use frame_support::assert_ok;
 use frame_system as system;
 use num_bigint::BigUint;
@@ -84,13 +84,45 @@ fn store_real_size_vote() {
     })
 }
 
+
+#[test]
+fn test_store_public_key() {
+    new_test_ext().execute_with(|| {
+        // create the submitter (i.e. the public key submitter)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let who = Origin::signed(account);
+
+        // create the public key        
+        let (_, _, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
+        b"2", 
+        b"1701411834604692317316873037");
+
+        // store created public key and public parameters
+        let public_key_storage = MixnetModule::store_public_key(who, pk.clone().into());
+        assert_ok!(public_key_storage);
+
+        // fetch the public key from the chain
+        let pk_from_chain: ElGamalPK = MixnetModule::public_key().into();
+        assert_eq!(pk_from_chain, pk);
+    })
+}
+
 #[test]
 fn shuffle_votes() {
     new_test_ext().execute_with(|| {
+        // create the submitter (i.e. the public key submitter)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let who = Origin::signed(account);
+
+        // create the public key    
         let (_, sk, pk) = Helper::setup_system(b"85053461164796801949539541639542805770666392330682673302530819774105141531698707146930307290253537320447270457", 
         b"2", 
         b"1701411834604692317316873037");
         let messages = [BigUint::from(5u32), BigUint::from(10u32), BigUint::from(15u32)];
+
+        // store created public key and public parameters
+        let public_key_storage = MixnetModule::store_public_key(who, pk.clone().into());
+        assert_ok!(public_key_storage);
         
         // encrypt the message -> encrypted message
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
@@ -114,7 +146,7 @@ fn shuffle_votes() {
         }
         
         // shuffle the votes
-        let shuffle_result = MixnetModule::trigger_shuffle(voter, pk.into());
+        let shuffle_result = MixnetModule::trigger_shuffle(voter);
         assert_ok!(shuffle_result);
 
         // fetch the submitted ballot

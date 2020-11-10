@@ -9,8 +9,9 @@ mod mock;
 #[macro_use]
 mod tests;
 
-use crate::types::Ballot;
-use crypto::elgamal::{encryption::ElGamal, types::Cipher};
+use crate::types::{Ballot, PublicKey as SubstratePK, PublicParameters};
+use crypto::elgamal::encryption::ElGamal;
+use crypto::elgamal::types::{Cipher, ElGamalParams, PublicKey as ElGamalPK};
 use frame_support::{
     codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch,
     weights::Pays,
@@ -19,7 +20,6 @@ use frame_system::{self as system, ensure_signed};
 use num_bigint::BigUint;
 use sp_std::if_std;
 use sp_std::vec::Vec;
-use types::PublicKey;
 
 /// Configure the pallet by specifying the parameters and types on which it depends.
 pub trait Trait: system::Trait {
@@ -29,6 +29,7 @@ pub trait Trait: system::Trait {
 // The pallet's runtime storage items.
 decl_storage! {
     trait Store for Module<T: Trait> as MixnetModule {
+        pub PublicKey get(fn public_key): SubstratePK;
         pub Ballots get(fn ballots): Vec<Ballot>;
         Voters get(fn voters): Vec<T::AccountId>;
     }
@@ -42,6 +43,9 @@ decl_event!(
     {
         /// ballot submission event -> [from/who, encrypted ballot]
         VoteSubmitted(AccountId, Ballot),
+
+        /// public key stored event -> [from/who, public key]
+        PublicKeyStored(AccountId, SubstratePK),
 
         /// ballots shuffled event -> [from/who]
         BallotsShuffled(AccountId),
@@ -70,6 +74,28 @@ decl_module! {
         fn deposit_event() = default;
 
         #[weight = (10000, Pays::No)]
+        pub fn store_public_key(origin, pk: SubstratePK) -> dispatch::DispatchResult {
+            // check that the extrinsic was signed and get the signer.
+            let who = ensure_signed(origin)?;
+            let address_bytes = who.encode();
+            debug::info!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
+            }
+
+            // store the public key
+            PublicKey::put(pk.clone());
+
+            // notify that the public key has been successfully stored
+            Self::deposit_event(RawEvent::PublicKeyStored(who, pk));
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
+
+        #[weight = (10000, Pays::No)]
         pub fn cast_ballot(origin, ballot: Ballot) -> dispatch::DispatchResult {
             // check that the extrinsic was signed and get the signer.
             let who = ensure_signed(origin)?;
@@ -92,7 +118,7 @@ decl_module! {
         }
 
         #[weight = (10000, Pays::No)]
-        fn trigger_shuffle(origin, pk: PublicKey) -> dispatch::DispatchResult {
+        fn trigger_shuffle(origin) -> dispatch::DispatchResult {
             // check that the extrinsic was signed and get the signer.
             let who = ensure_signed(origin)?;
             let address_bytes = who.encode();
@@ -108,6 +134,14 @@ decl_module! {
             if_std! {
                 // This code is only being compiled and executed when the `std` feature is enabled.
                 println!("Shuffle requested!");
+            }
+
+            // retrieve the public key
+            let pk: SubstratePK = PublicKey::get();
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("public key: {:?}", pk);
             }
 
             // shuffle all ballots
@@ -147,7 +181,7 @@ impl<T: Trait> Module<T> {
         }
     }
 
-    fn shuffle_ballots(pk: PublicKey) {
+    fn shuffle_ballots(pk: SubstratePK) {
         // get all encrypted ballots
         let ballots: Vec<Ballot> = Ballots::get();
 
