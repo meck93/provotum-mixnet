@@ -25,6 +25,7 @@ use frame_system::{
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
+use pallet_mixnet::types::PublicKey as SubstratePK;
 use rand::distributions::{Distribution, Uniform};
 use rand_chacha::{
     rand_core::{RngCore, SeedableRng},
@@ -291,6 +292,10 @@ impl<T: Trait> Module<T> {
             range[random] = range[index];
         }
         Ok(permutation)
+    }
+
+    fn shuffle_ballots() {
+        let pk: SubstratePK = pallet_mixnet::PublicKey::get();
     }
 
     fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
