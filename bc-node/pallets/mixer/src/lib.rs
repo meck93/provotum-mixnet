@@ -25,17 +25,15 @@ use frame_system::{
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use rand::distributions::Distribution;
-use rand::distributions::Uniform;
-use rand_chacha::rand_core::RngCore;
-use rand_chacha::rand_core::SeedableRng;
-use rand_chacha::ChaChaRng;
+use rand::distributions::{Distribution, Uniform};
+use rand_chacha::{
+    rand_core::{RngCore, SeedableRng},
+    ChaChaRng,
+};
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 
 /// the type to sign and send transactions.
-pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
-
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Payload<Public> {
     number: u64,
@@ -309,7 +307,7 @@ impl<T: Trait> Module<T> {
         //   - `Some((account, Err(())))`: error occured when sending the transaction
         let result = signer.send_signed_transaction(|_acct|
 			// This is the on-chain function
-			Call::submit_number_signed(number));
+            Call::submit_number_signed(number));
 
         // Display error if the signed tx fails.
         if let Some((acc, res)) = result {
