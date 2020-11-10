@@ -30,7 +30,6 @@ use rand::distributions::Uniform;
 use rand_chacha::rand_core::RngCore;
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaChaRng;
-use sp_io::offchain as io_offchain;
 use sp_runtime::{
     offchain as rt_offchain,
     transaction_validity::{
@@ -106,6 +105,9 @@ decl_error! {
 
         // Error returned when error occurs in gen_random_range
         RandomRangeError,
+
+        // Error returned when permutation size is zero
+        PermutationSizeZeroError,
     }
 }
 
@@ -162,7 +164,7 @@ decl_module! {
         }
 
         fn offchain_worker(block_number: T::BlockNumber) {
-            debug::info!("Entering off-chain worker");
+            debug::info!("off-chain worker: entering...");
 
             // various techniques that can be used when running off-chain workers
             // 1. Sending signed transaction from off-chain worker
@@ -179,23 +181,35 @@ decl_module! {
             };
 
             if let Err(e) = result {
-                debug::error!("offchain_worker error: {:?}", e);
+                debug::error!("off-chain worker - error: {:?}", e);
             }
 
             let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
-
             let random = Self::get_random_less_than(&number);
             match random {
-                Ok(value) => debug::info!("random value: {:?}", value),
-                Err(error) => debug::error!("offchain_worker error: {:?}", error),
+                Ok(value) => debug::info!("off-chain worker: random value: {:?} less than: {:?}", value, number),
+                Err(error) => debug::error!("off-chain worker - error: {:?}", error),
             }
 
             let lower: BigUint = BigUint::one();
-            let value = Self::get_random_range(&lower, &number);
+            let value = Self::get_random_bigunint_range(&lower, &number);
             match value {
-                Ok(val) => debug::info!("random value in range. lower: {:?}, upper: {:?}, value: {:?}", lower, number, val),
-                Err(error) => debug::error!("offchain_worker error: {:?}", error),
+                Ok(val) => debug::info!("off-chain worker: random bigunit value in range. lower: {:?}, upper: {:?}, value: {:?}", lower, number, val),
+                Err(error) => debug::error!("off-chain worker - error: {:?}", error),
             }
+
+            let value = Self::get_random_range(5, 12312356);
+            match value {
+                Ok(val) => debug::info!("off-chain worker: random value in range. lower: {:?}, upper: {:?}, value: {:?}", 5, 12312356, val),
+                Err(error) => debug::error!("off-chain worker - error: {:?}", error),
+            }
+
+            let value = Self::generate_permutation(10);
+            match value {
+                Ok(val) => debug::info!("off-chain worker: permutation: {:?}", val),
+                Err(error) => debug::error!("off-chain worker - error: {:?}", error),
+            }
+            debug::info!("off-chain worker: done...");
         }
     }
 }
@@ -203,7 +217,7 @@ decl_module! {
 impl<T: Trait> Module<T> {
     fn get_prng() -> ChaChaRng {
         // 32 byte array as random seed
-        let seed: [u8; 32] = io_offchain::random_seed();
+        let seed: [u8; 32] = sp_io::offchain::random_seed();
         ChaChaRng::from_seed(seed)
     }
 
@@ -250,7 +264,16 @@ impl<T: Trait> Module<T> {
         Err(result.unwrap_err())
     }
 
-    fn get_random_range(lower: &BigUint, upper: &BigUint) -> Result<BigUint, Error<T>> {
+    fn get_random_bigunint_range(lower: &BigUint, upper: &BigUint) -> Result<BigUint, Error<T>> {
+        let mut rng = Self::get_prng();
+        Self::random_bigunint_range(&mut rng, lower, upper)
+    }
+
+    fn random_bigunint_range(
+        rng: &mut ChaChaRng,
+        lower: &BigUint,
+        upper: &BigUint,
+    ) -> Result<BigUint, Error<T>> {
         if *lower < BigUint::zero() {
             return Err(<Error<T>>::RandomRangeError);
         }
@@ -260,10 +283,52 @@ impl<T: Trait> Module<T> {
         if *lower >= *upper {
             return Err(<Error<T>>::RandomRangeError);
         }
-        let mut rng = Self::get_prng();
         let uniform = Uniform::new(lower, upper);
-        let value: BigUint = uniform.sample(&mut rng);
+        let value: BigUint = uniform.sample(rng);
         Ok(value)
+    }
+
+    fn get_random_range(lower: usize, upper: usize) -> Result<usize, Error<T>> {
+        let mut rng = Self::get_prng();
+        Self::random_range(&mut rng, lower, upper)
+    }
+
+    fn random_range(rng: &mut ChaChaRng, lower: usize, upper: usize) -> Result<usize, Error<T>> {
+        if upper == 0 {
+            return Err(<Error<T>>::RandomRangeError);
+        }
+        if lower >= upper {
+            return Err(<Error<T>>::RandomRangeError);
+        }
+        let uniform = Uniform::new(lower, upper);
+        let value: usize = uniform.sample(rng);
+        Ok(value)
+    }
+
+    fn generate_permutation(size: usize) -> Result<Vec<usize>, Error<T>> {
+        if size == 0 {
+            return Err(<Error<T>>::PermutationSizeZeroError);
+        }
+
+        // vector containing the range of values from 0 up to the size of the vector - 1
+        let mut permutation: Vec<usize> = Vec::new();
+        let mut range: Vec<usize> = (0..size).collect();
+        let mut rng = Self::get_prng();
+
+        for index in 0..size {
+            // get random integer
+            let random: usize = Self::random_range(&mut rng, index, size).unwrap();
+
+            // get the element in the range at the random position
+            let value = range.get(random).unwrap();
+
+            // store the value of the element at the random position
+            permutation.push(*value);
+
+            // swap positions
+            range[random] = range[index];
+        }
+        Ok(permutation)
     }
 
     /// Append a new number to the tail of the list,

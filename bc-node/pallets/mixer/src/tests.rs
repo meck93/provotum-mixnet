@@ -35,7 +35,7 @@ fn test_submit_number_signed_works() {
 
 #[test]
 fn test_offchain_signed_tx() {
-    let (mut t, pool_state, _offchain_state) = ExternalityBuilder::build();
+    let (mut t, pool_state, _) = ExternalityBuilder::build();
 
     t.execute_with(|| {
         // Setup
@@ -53,7 +53,7 @@ fn test_offchain_signed_tx() {
 
 #[test]
 fn test_offchain_unsigned_tx() {
-    let (mut t, pool_state, _offchain_state) = ExternalityBuilder::build();
+    let (mut t, pool_state, _) = ExternalityBuilder::build();
 
     t.execute_with(|| {
         // when
@@ -111,12 +111,12 @@ fn test_get_random_number_less_than_should_panic_number_is_zero() {
 }
 
 #[test]
-fn test_get_random_range() {
+fn test_get_random_bigunint_range() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let lower: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
-        let upper: BigUint = BigUint::parse_bytes(b"100", 10).unwrap();
-        let value = OffchainModule::get_random_range(&lower, &upper).unwrap();
+        let upper: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
+        let value = OffchainModule::get_random_bigunint_range(&lower, &upper).unwrap();
         
         assert!(value < upper);
         assert!(lower < value);
@@ -128,23 +128,86 @@ fn test_get_random_range() {
 }
 
 #[test]
-fn test_get_random_range_upper_is_zero() {
+fn test_get_random_bigunint_range_upper_is_zero() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let lower: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
         let upper: BigUint = BigUint::parse_bytes(b"0", 10).unwrap();
-        OffchainModule::get_random_range(&lower, &upper)
+        OffchainModule::get_random_bigunint_range(&lower, &upper)
             .expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
     });
 }
 
 #[test]
-fn test_get_random_range_upper_is_not_larger_than_lower() {
+fn test_get_random_bigunint_range_upper_is_not_larger_than_lower() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         let lower: BigUint = BigUint::parse_bytes(b"5", 10).unwrap();
         let upper: BigUint = BigUint::parse_bytes(b"5", 10).unwrap();
-        OffchainModule::get_random_range(&lower, &upper)
+        OffchainModule::get_random_bigunint_range(&lower, &upper)
             .expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
+    });
+}
+
+#[test]
+fn test_get_random_range() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let lower: usize = 0;
+        let upper: usize = 100;
+        let value = OffchainModule::get_random_range(lower, upper).unwrap();
+        
+        assert!(value < upper);
+        assert!(lower < value);
+        
+        if_std! {
+            println!("random value in range. lower: {:?}, upper: {:?}, value: {:?}", lower, upper, value);
+        }
+    });
+}
+
+#[test]
+fn test_get_random_range_upper_is_zero_error() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let lower: usize = 0;
+        let upper: usize = 0;
+        OffchainModule::get_random_range(lower, upper).expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
+    });
+}
+
+#[test]
+fn test_get_random_range_upper_is_not_larger_than_lower_error() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let lower: usize = 5;
+        let upper: usize = 5;
+        OffchainModule::get_random_range(lower, upper).expect_err("The returned value should be: '<Error<T>>::RandomRangeError'");
+    });
+}
+
+#[test]
+fn test_generate_permutation_size_zero_error() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let size = 0;
+        OffchainModule::generate_permutation(size).expect_err("The returned value should be: '<Error<T>>::PermutationSizeZeroError'");
+    });
+}
+
+#[test]
+fn test_should_generate_a_permutation_size_three() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let size = 3;
+        let permutation = OffchainModule::generate_permutation(size).unwrap();
+
+        // check that the permutation has the expected size
+        assert!(permutation.len() == (size as usize));
+
+        // check that 0, 1, 2 occur at least once each
+        assert!(permutation.iter().any(|&value| value == 0));
+        assert!(permutation.iter().any(|&value| value == 1));
+        assert!(permutation.iter().any(|&value| value == 2));
     });
 }
