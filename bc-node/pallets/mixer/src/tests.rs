@@ -53,23 +53,6 @@ fn test_offchain_signed_tx() {
 }
 
 #[test]
-fn test_offchain_unsigned_tx() {
-    let (mut t, pool_state, _) = ExternalityBuilder::build();
-
-    t.execute_with(|| {
-        // when
-        let num = 32;
-        OffchainModule::offchain_unsigned_tx(num).unwrap();
-        // then
-        let tx = pool_state.write().transactions.pop().unwrap();
-        assert!(pool_state.read().transactions.is_empty());
-        let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
-        assert_eq!(tx.signature, None);
-        assert_eq!(tx.call, Call::submit_number_unsigned(num));
-    });
-}
-
-#[test]
 fn test_offchain_signed_tx_random_number() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {

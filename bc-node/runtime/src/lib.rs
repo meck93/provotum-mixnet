@@ -365,7 +365,7 @@ construct_runtime!(
         MixnetModule: pallet_mixnet::{Module, Call, Storage, Event<T>},
 
         // include the custom logic from the mixer off-chain worker pallet.
-        OffchainPallet: pallet_offchain_mixer::{ Module, Call, Storage, Event<T>, ValidateUnsigned },
+        OffchainPallet: pallet_offchain_mixer::{ Module, Call, Storage, Event<T> },
     }
 );
 
