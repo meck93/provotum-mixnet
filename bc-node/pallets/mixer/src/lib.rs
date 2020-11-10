@@ -215,7 +215,7 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-    fn get_prng() -> ChaChaRng {
+    fn get_rng() -> ChaChaRng {
         // 32 byte array as random seed
         let seed: [u8; 32] = sp_io::offchain::random_seed();
         ChaChaRng::from_seed(seed)
@@ -224,18 +224,20 @@ impl<T: Trait> Module<T> {
     /// secure random number generation using OS randomness
     fn get_random_bytes(size: usize) -> Result<Vec<u8>, Error<T>> {
         // use chacha20 to produce random vector [u8] of size: size
-        let mut rng = Self::get_prng();
+        let mut rng = Self::get_rng();
         let mut bytes = vec![0; size];
 
         // try to fill the byte array with random values
-        // if successful, returns the random bytes. else, an error.
         let random_value_generation = rng.try_fill_bytes(&mut bytes);
-        if random_value_generation.is_ok() {
-            return Ok(bytes);
-        } else {
-            let error = random_value_generation.unwrap_err();
-            debug::error!("randomness generation error: {:?}", error);
-            return Err(<Error<T>>::RandomnessGenerationError);
+
+        match random_value_generation {
+            // if successful, returns the random bytes.
+            Ok(_) => Ok(bytes),
+            // else, that the randomness generation failed.
+            Err(error) => {
+                debug::error!("randomness generation error: {:?}", error);
+                Err(<Error<T>>::RandomnessGenerationError)
+            }
         }
     }
 
@@ -252,20 +254,21 @@ impl<T: Trait> Module<T> {
         let size: usize = upper_bound.to_bytes_be().len();
 
         // fill an array of size: <size> with random bytes
-        let result = Self::get_random_bytes(size);
+        let random_bytes = Self::get_random_bytes(size);
 
-        if result.is_ok() {
-            let value = result.unwrap();
-            // try to transform the byte array into a biguint
-            let random = BigUint::from_bytes_be(&value);
-            // ensure: random < number
-            return Ok(random % number);
+        match random_bytes {
+            Ok(bytes) => {
+                // try to transform the byte array into a biguint
+                let random = BigUint::from_bytes_be(&bytes);
+                // ensure: random < number
+                Ok(random % number)
+            }
+            Err(err) => Err(err),
         }
-        Err(result.unwrap_err())
     }
 
     fn get_random_bigunint_range(lower: &BigUint, upper: &BigUint) -> Result<BigUint, Error<T>> {
-        let mut rng = Self::get_prng();
+        let mut rng = Self::get_rng();
         Self::random_bigunint_range(&mut rng, lower, upper)
     }
 
@@ -289,7 +292,7 @@ impl<T: Trait> Module<T> {
     }
 
     fn get_random_range(lower: usize, upper: usize) -> Result<usize, Error<T>> {
-        let mut rng = Self::get_prng();
+        let mut rng = Self::get_rng();
         Self::random_range(&mut rng, lower, upper)
     }
 
@@ -313,7 +316,7 @@ impl<T: Trait> Module<T> {
         // vector containing the range of values from 0 up to the size of the vector - 1
         let mut permutation: Vec<usize> = Vec::new();
         let mut range: Vec<usize> = (0..size).collect();
-        let mut rng = Self::get_prng();
+        let mut rng = Self::get_rng();
 
         for index in 0..size {
             // get random integer
