@@ -1,7 +1,7 @@
 use crate::{Module, Trait};
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use frame_system as system;
-use sp_core::H256;
+use sp_core::{sr25519, H256};
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
@@ -9,7 +9,7 @@ use sp_runtime::{
 };
 
 impl_outer_origin! {
-    pub enum Origin for TestRuntime {}
+    pub enum Origin for TestRuntime where system = system {}
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -30,7 +30,7 @@ impl system::Trait for TestRuntime {
     type BlockNumber = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = sr25519::Public;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
     type Event = ();

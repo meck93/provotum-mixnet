@@ -1,17 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use crate::types::Ballot;
-use crypto::elgamal::{encryption::ElGamal, types::Cipher};
-use frame_support::{
-    codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch, traits::Get,
-    weights::Pays,
-};
-use frame_system::{self as system, ensure_signed};
-use num_bigint::BigUint;
-use sp_std::if_std;
-use sp_std::vec::Vec;
-use types::PublicKey;
-
 pub mod types;
 
 #[cfg(test)]
@@ -21,6 +9,18 @@ mod mock;
 #[macro_use]
 mod tests;
 
+use crate::types::Ballot;
+use crypto::elgamal::{encryption::ElGamal, types::Cipher};
+use frame_support::{
+    codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch,
+    weights::Pays,
+};
+use frame_system::{self as system, ensure_signed};
+use num_bigint::BigUint;
+use sp_std::if_std;
+use sp_std::vec::Vec;
+use types::PublicKey;
+
 /// Configure the pallet by specifying the parameters and types on which it depends.
 pub trait Trait: system::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
@@ -29,7 +29,6 @@ pub trait Trait: system::Trait {
 // The pallet's runtime storage items.
 decl_storage! {
     trait Store for Module<T: Trait> as MixnetModule {
-        Something get(fn something): Option<u32>;
         pub Ballots get(fn ballots): Vec<Ballot>;
         Voters get(fn voters): Vec<T::AccountId>;
     }
@@ -41,10 +40,6 @@ decl_event!(
     where
         AccountId = <T as system::Trait>::AccountId,
     {
-        /// Event documentation should end with an array that provides descriptive names for event
-        /// parameters. [something, who]
-        SomethingStored(u32, AccountId),
-
         /// ballot submission event -> [from/who, encrypted ballot]
         VoteSubmitted(AccountId, Ballot),
 
@@ -74,45 +69,8 @@ decl_module! {
         // Events must be initialized if they are used by the pallet.
         fn deposit_event() = default;
 
-        /// An example dispatchable that takes a singles value as a parameter, writes the value to
-        /// storage and emits an event. This function must be dispatched by a signed extrinsic.
-        #[weight = 10_000 + T::DbWeight::get().writes(1)]
-        pub fn do_something(origin, something: u32) -> dispatch::DispatchResult {
-            // Check that the extrinsic was signed and get the signer.
-            // This function will return an error if the extrinsic is not signed.
-            // https://substrate.dev/docs/en/knowledgebase/runtime/origin
-            let who = ensure_signed(origin)?;
-
-            // Update storage.
-            Something::put(something);
-
-            // Emit an event.
-            Self::deposit_event(RawEvent::SomethingStored(something, who));
-            // Return a successful DispatchResult
-            Ok(())
-        }
-
-        /// An example dispatchable that may throw a custom error.
-        #[weight = 10_000 + T::DbWeight::get().reads_writes(1,1)]
-        pub fn cause_error(origin) -> dispatch::DispatchResult {
-            let _who = ensure_signed(origin)?;
-
-            // Read a value from storage.
-            match Something::get() {
-                // Return an error if the value has not been set.
-                None => Err(Error::<T>::NoneValue.into()),
-                Some(old) => {
-                    // Increment the value read from storage; will error in the event of overflow.
-                    let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-                    // Update the value in storage with the incremented result.
-                    Something::put(new);
-                    Ok(())
-                },
-            }
-        }
-
         #[weight = (10000, Pays::No)]
-        fn cast_ballot(origin, ballot: Ballot) -> dispatch::DispatchResult {
+        pub fn cast_ballot(origin, ballot: Ballot) -> dispatch::DispatchResult {
             // check that the extrinsic was signed and get the signer.
             let who = ensure_signed(origin)?;
             let address_bytes = who.encode();

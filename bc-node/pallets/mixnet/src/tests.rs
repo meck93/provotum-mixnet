@@ -1,31 +1,9 @@
 use crate::types::Ballot;
-use crate::{mock::*, Error};
-use crypto::elgamal::encryption::ElGamal;
-use crypto::elgamal::helper::Helper;
-use crypto::elgamal::types::Cipher;
-use frame_support::{assert_noop, assert_ok};
+use crate::mock::*;
+use crypto::elgamal::{encryption::ElGamal, helper::Helper, types::Cipher};
+use frame_support::assert_ok;
+use frame_system as system;
 use num_bigint::BigUint;
-
-#[test]
-fn it_works_for_default_value() {
-    new_test_ext().execute_with(|| {
-        // Dispatch a signed extrinsic.
-        assert_ok!(MixnetModule::do_something(Origin::signed(1), 42));
-        // Read pallet storage and assert an expected result.
-        assert_eq!(MixnetModule::something(), Some(42));
-    });
-}
-
-#[test]
-fn correct_error_for_none_value() {
-    new_test_ext().execute_with(|| {
-        // Ensure the expected error is thrown when no value is present.
-        assert_noop!(
-            MixnetModule::cause_error(Origin::signed(1)),
-            Error::<TestRuntime>::NoneValue
-        );
-    });
-}
 
 #[test]
 fn store_small_dummy_vote() {
@@ -41,7 +19,10 @@ fn store_small_dummy_vote() {
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
         let encrypted_vote: Ballot = cipher.clone().into();
-        let voter = Origin::signed(1);
+
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
 
         let vote_submission_result = MixnetModule::cast_ballot(voter, encrypted_vote.clone());
         assert_ok!(vote_submission_result);
@@ -79,7 +60,10 @@ fn store_real_size_vote() {
         // transform the ballot into a from that the blockchain can handle
         // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
         let encrypted_vote: Ballot = cipher.clone().into();
-        let voter = Origin::signed(1);
+        
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
 
         let vote_submission_result = MixnetModule::cast_ballot(voter, encrypted_vote.clone());
         assert_ok!(vote_submission_result);
@@ -112,6 +96,10 @@ fn shuffle_votes() {
         // cipher = the crypto crate version of a ballot { a: BigUint, b: BigUint }
         let randoms = [b"170141183460469231731687303715884", b"170141183460469231731687303700084", b"170141183400069231731687303700084"];
 
+        // create the voter (i.e. the transaction signer)
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let voter = Origin::signed(account);
+
         for index in 0..3 {
             let random = BigUint::parse_bytes(randoms[index], 10).unwrap();
             let cipher: Cipher = ElGamal::encrypt(&messages[index], &random, &pk);
@@ -119,15 +107,13 @@ fn shuffle_votes() {
             // transform the ballot into a from that the blockchain can handle
             // i.e. a Substrate representation { a: Vec<u8>, b: Vec<u8> }
             let encrypted_vote: Ballot = cipher.clone().into();
-            let voter = Origin::signed(1);
     
-            let vote_submission_result = MixnetModule::cast_ballot(voter, encrypted_vote.clone());
+            let vote_submission_result = MixnetModule::cast_ballot(voter.clone(), encrypted_vote.clone());
             assert_ok!(vote_submission_result);
 
         }
         
         // shuffle the votes
-        let voter = Origin::signed(1);
         let shuffle_result = MixnetModule::trigger_shuffle(voter, pk.into());
         assert_ok!(shuffle_result);
 
