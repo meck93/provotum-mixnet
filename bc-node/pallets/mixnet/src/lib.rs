@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use crate::types::Ballot;
 use crypto::elgamal::{encryption::ElGamal, types::Cipher};
 use frame_support::{
     codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch, traits::Get,
@@ -11,9 +12,7 @@ use sp_std::if_std;
 use sp_std::vec::Vec;
 use types::PublicKey;
 
-use crate::types::Ballot;
-
-mod types;
+pub mod types;
 
 #[cfg(test)]
 mod mock;
@@ -101,7 +100,7 @@ decl_module! {
             // Read a value from storage.
             match Something::get() {
                 // Return an error if the value has not been set.
-                None => Err(Error::<T>::NoneValue)?,
+                None => Err(Error::<T>::NoneValue.into()),
                 Some(old) => {
                     // Increment the value read from storage; will error in the event of overflow.
                     let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;

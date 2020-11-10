@@ -3512,6 +3512,7 @@ dependencies = [
  "frame-system",
  "num-bigint 0.3.0",
  "num-traits",
+ "pallet-mixnet",
  "pallet-timestamp",
  "parity-scale-codec",
  "parking_lot 0.10.2",

@@ -1,7 +1,9 @@
+use crate as pallet_mixer;
 use crate::*;
 use codec::alloc::sync::Arc;
 use frame_support::{dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types};
 use frame_system as system;
+use pallet_mixnet::{Module as MixnetMod, Trait as MixnetTrait};
 use parking_lot::RwLock;
 use sp_core::{
     offchain::{
@@ -20,16 +22,18 @@ use sp_runtime::{
     Perbill,
 };
 
-use crate as offchain_mixer;
-
 impl_outer_origin! {
     pub enum Origin for TestRuntime where system = system {}
 }
 
 impl_outer_event! {
     pub enum TestEvent for TestRuntime {
+        // events of crate: pallet_mixer
         system<T>,
-        offchain_mixer<T>,
+        pallet_mixer<T>,
+
+        // events of crate: pallet_mixnet
+        pallet_mixnet<T>,
     }
 }
 
@@ -118,6 +122,12 @@ where
 
 pub type System = system::Module<TestRuntime>;
 pub type OffchainModule = Module<TestRuntime>;
+
+impl MixnetTrait for TestRuntime {
+    type Event = TestEvent;
+}
+
+pub type MixnetModule = MixnetMod<TestRuntime>;
 
 pub struct ExternalityBuilder;
 

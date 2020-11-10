@@ -3,6 +3,7 @@ use crate::*;
 use codec::Decode;
 use frame_support::assert_ok;
 use sp_std::if_std;
+use pallet_mixnet::types::Ballot;
 
 #[test]
 fn test_submit_number_signed_works() {
@@ -20,7 +21,7 @@ fn test_submit_number_signed_works() {
         // An event is emitted
         assert!(System::events()
             .iter()
-            .any(|er| er.event == TestEvent::offchain_mixer(RawEvent::NewNumber(Some(acct), num))));
+            .any(|er| er.event == TestEvent::pallet_mixer(RawEvent::NewNumber(Some(acct), num))));
 
         // Insert another number
         let num2 = num * 2;
@@ -209,5 +210,26 @@ fn test_should_generate_a_permutation_size_three() {
         assert!(permutation.iter().any(|&value| value == 0));
         assert!(permutation.iter().any(|&value| value == 1));
         assert!(permutation.iter().any(|&value| value == 2));
+    });
+}
+
+////////////////////////////////////////////////////
+/// Integration Tests -> together with pallet_mixnet
+
+#[test]
+fn integration_test_with_pallet_mixnet_fetch_ballots() {
+    let (mut t, _, _) = ExternalityBuilder::build();
+    t.execute_with(|| {
+        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+
+        // Dispatch a signed extrinsic.
+        assert_ok!(MixnetModule::do_something(Origin::signed(account), 42));
+
+        // Read pallet storage and assert an expected result.
+        assert_eq!(MixnetModule::something(), Some(42));
+                
+        // fetch the submitted ballot
+        let votes_from_chain: Vec<Ballot> = MixnetModule::ballots();
+        assert!(votes_from_chain.len() == 0);
     });
 }
