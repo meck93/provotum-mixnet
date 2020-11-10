@@ -5,7 +5,7 @@ use frame_support::{
     codec::Encode, debug, decl_error, decl_event, decl_module, decl_storage, dispatch, traits::Get,
     weights::Pays,
 };
-use frame_system::ensure_signed;
+use frame_system::{self as system, ensure_signed};
 use num_bigint::BigUint;
 use sp_std::if_std;
 use sp_std::vec::Vec;
@@ -23,15 +23,15 @@ mod mock;
 mod tests;
 
 /// Configure the pallet by specifying the parameters and types on which it depends.
-pub trait Trait: frame_system::Trait {
-    type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Trait: system::Trait {
+    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
 // The pallet's runtime storage items.
 decl_storage! {
     trait Store for Module<T: Trait> as MixnetModule {
         Something get(fn something): Option<u32>;
-        Ballots get(fn ballots): Vec<Ballot>;
+        pub Ballots get(fn ballots): Vec<Ballot>;
         Voters get(fn voters): Vec<T::AccountId>;
     }
 }
@@ -40,7 +40,7 @@ decl_storage! {
 decl_event!(
     pub enum Event<T>
     where
-        AccountId = <T as frame_system::Trait>::AccountId,
+        AccountId = <T as system::Trait>::AccountId,
     {
         /// Event documentation should end with an array that provides descriptive names for event
         /// parameters. [something, who]
