@@ -1,6 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![feature(unsized_locals)]
 
+pub mod types;
+
 #[cfg(test)]
 mod mock;
 
@@ -25,14 +27,14 @@ use frame_system::{
 };
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
-use pallet_mixnet::types::PublicKey as SubstratePK;
 use rand::distributions::{Distribution, Uniform};
 use rand_chacha::{
     rand_core::{RngCore, SeedableRng},
     ChaChaRng,
 };
 use sp_runtime::{offchain as rt_offchain, RuntimeDebug};
-use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
+use sp_std::{collections::vec_deque::VecDeque, if_std, prelude::*, str};
+use types::{Ballot, PublicKey as SubstratePK};
 
 /// the type to sign and send transactions.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -61,6 +63,15 @@ decl_storage! {
     trait Store for Module<T: Trait> as Example {
         /// A vector of recently submitted numbers (at most 10).
         Numbers get(fn numbers): VecDeque<u64>;
+
+        /// The system's public key
+        PublicKey get(fn public_key): SubstratePK;
+
+        /// A vector containing all submitted votes
+        Ballots get(fn ballots): Vec<Ballot>;
+
+        /// A vector containing the IDs of voters that have submitted their ballots
+        Voters get(fn voters): Vec<T::AccountId>;
     }
 }
 
@@ -72,6 +83,12 @@ decl_event!(
     {
         /// Event generated when a new number is accepted to contribute to the average.
         NewNumber(Option<AccountId>, u64),
+
+        /// ballot submission event -> [from/who, encrypted ballot]
+        VoteSubmitted(AccountId, Ballot),
+
+        /// public key stored event -> [from/who, public key]
+        PublicKeyStored(AccountId, SubstratePK),
     }
 );
 
@@ -103,7 +120,30 @@ decl_module! {
         // Errors must be initialized if they are used by the pallet.
         type Error = Error<T>;
 
+        // Events must be initialized if they are used by the pallet.
         fn deposit_event() = default;
+
+        #[weight = (10000, Pays::No)]
+        pub fn store_public_key(origin, pk: SubstratePK) -> DispatchResult {
+            // check that the extrinsic was signed and get the signer.
+            let who = ensure_signed(origin)?;
+            let address_bytes = who.encode();
+            debug::info!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Voter {:?} (encoded: {:?}).", &who, address_bytes);
+            }
+
+            // store the public key
+            PublicKey::put(pk.clone());
+
+            // notify that the public key has been successfully stored
+            Self::deposit_event(RawEvent::PublicKeyStored(who, pk));
+
+            // Return a successful DispatchResult
+            Ok(())
+        }
 
         #[weight = 10000]
         pub fn submit_number_signed(origin, number: u64) -> DispatchResult {
@@ -123,15 +163,24 @@ decl_module! {
         }
 
         #[weight = (10000, Pays::No)]
-        pub fn random(origin) -> DispatchResult
-        {
-            let _ = ensure_signed(origin)?;
-            let number: BigUint = BigUint::parse_bytes(b"10981023801283012983912312", 10).unwrap();
-            let random = Self::get_random_less_than(&number);
-            match random {
-                Ok(value) => debug::info!("random value: {:?}", value),
-                Err(error) => debug::error!("offchain_worker error: {:?}", error),
+        pub fn cast_ballot(origin, ballot: Ballot) -> DispatchResult {
+            // check that the extrinsic was signed and get the signer.
+            let who = ensure_signed(origin)?;
+            let address_bytes = who.encode();
+            debug::info!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
+
+            if_std! {
+                // This code is only being compiled and executed when the `std` feature is enabled.
+                println!("Voter {:?} (encoded: {:?}) cast a ballot.", &who, address_bytes);
             }
+
+            // store the ballot
+            Self::store_ballot(who.clone(), ballot.clone());
+
+            // notify that the ballot has been submitted and successfully stored
+            Self::deposit_event(RawEvent::VoteSubmitted(who, ballot));
+
+            // Return a successful DispatchResult
             Ok(())
         }
 
@@ -140,7 +189,7 @@ decl_module! {
 
             let result = Self::offchain_signed_tx(block_number);
             match result {
-                Ok(_) => debug::info!("successfully submitted signed_tx"),
+                Ok(_) => debug::info!("off-chain worker: successfully submitted signed_tx {:?}", block_number),
                 Err(e) => debug::error!("off-chain worker - error: {:?}", e),
             }
 
@@ -294,8 +343,32 @@ impl<T: Trait> Module<T> {
         Ok(permutation)
     }
 
+    fn store_ballot(from: T::AccountId, ballot: Ballot) {
+        // store the encrypted ballot
+        let mut ballots: Vec<Ballot> = Ballots::get();
+        ballots.push(ballot.clone());
+        Ballots::put(ballots);
+        debug::info!("Encrypted Ballot: {:?} has been stored.", ballot);
+
+        if_std! {
+            // This code is only being compiled and executed when the `std` feature is enabled.
+            println!("Encrypted Ballot: {:?} has been stored.", ballot);
+        }
+
+        // update the list of voters
+        let mut voters: Vec<T::AccountId> = Voters::<T>::get();
+        voters.push(from.clone());
+        Voters::<T>::put(voters);
+        debug::info!("Voter {:?} has been stored.", from);
+
+        if_std! {
+            // This code is only being compiled and executed when the `std` feature is enabled.
+            println!("Voter {:?} has been stored.", from);
+        }
+    }
+
     fn shuffle_ballots() {
-        let pk: SubstratePK = pallet_mixnet::PublicKey::get();
+        let pk: SubstratePK = PublicKey::get();
     }
 
     fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {

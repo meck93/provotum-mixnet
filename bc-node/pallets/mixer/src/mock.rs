@@ -3,7 +3,6 @@ use crate::Call;
 use codec::alloc::sync::Arc;
 use frame_support::{dispatch::Weight, impl_outer_event, impl_outer_origin, parameter_types};
 use frame_system as system;
-use pallet_mixnet;
 use parking_lot::RwLock;
 use sp_core::{
     offchain::{
@@ -31,9 +30,6 @@ impl_outer_event! {
         // events of crate: pallet_mixer
         system<T>,
         pallet_mixer<T>,
-
-        // events of crate: pallet_mixnet
-        pallet_mixnet<T>,
     }
 }
 
@@ -117,7 +113,7 @@ where
 pub type System = system::Module<TestRuntime>;
 
 ////////////////////////////////////////
-/// Mock Implementation of pallet_mixnet
+/// Mock Implementation of pallet_mixer
 impl pallet_mixer::Trait for TestRuntime {
     type Call = Call<TestRuntime>;
     type Event = TestEvent;
@@ -125,14 +121,6 @@ impl pallet_mixer::Trait for TestRuntime {
 }
 
 pub type OffchainModule = pallet_mixer::Module<TestRuntime>;
-
-////////////////////////////////////////
-/// Mock Implementation of pallet_mixnet
-impl pallet_mixnet::Trait for TestRuntime {
-    type Event = TestEvent;
-}
-
-pub type MixnetModule = pallet_mixnet::Module<TestRuntime>;
 
 pub struct ExternalityBuilder;
 
