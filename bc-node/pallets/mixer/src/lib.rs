@@ -3,6 +3,7 @@
 extern crate alloc;
 
 mod helpers;
+mod shuffle;
 pub mod types;
 
 #[cfg(test)]

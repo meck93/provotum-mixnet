@@ -3,7 +3,7 @@ use crate::{mock::*, types::Wrapper};
 use crate::{types::Ballot, types::PublicKey};
 use codec::Decode;
 use crypto::{
-    encryption::ElGamal, helper::Helper, types::Cipher, types::PublicKey as ElGamalPK, types::ElGamalParams
+    encryption::ElGamal, helper::Helper, types::Cipher, types::PublicKey as ElGamalPK
 };
 use frame_support::assert_ok;
 use frame_system as system;
