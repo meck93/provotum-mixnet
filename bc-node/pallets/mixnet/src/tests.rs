@@ -1111,3 +1111,5 @@ fn test_store_public_key_share() {
         assert_eq!(share_by_sealer.proof.response, proof.response.to_bytes_be());
     });
 }
+
+// TODO: add combine_public_key_shares test
