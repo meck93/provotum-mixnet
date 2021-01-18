@@ -1,12 +1,13 @@
 use super::assertions::ensure_vote_exists;
 use crate::{
-    sp_api_hidden_includes_decl_storage::hidden_include::{StorageMap, StorageValue},
+    sp_api_hidden_includes_decl_storage::hidden_include::StorageMap,
     types::{PublicKey, PublicKeyShare, PublicParameters, Vote, VoteId},
     Error, PublicKeyShares, Trait, Votes,
 };
 use crypto::types::PublicKey as ElGamalPK;
 use num_bigint::BigUint;
 use num_traits::One;
+use sp_std::vec::Vec;
 
 /// all functions related to key generation and decrypted share operations
 pub fn get_public_params<T: Trait>(vote_id: &VoteId) -> Result<PublicParameters, Error<T>> {

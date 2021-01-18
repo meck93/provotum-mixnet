@@ -2,10 +2,7 @@ pub mod prover;
 pub mod verifier;
 
 use crate::types::{Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, Wrapper};
-use crate::{
-    sp_api_hidden_includes_decl_storage::hidden_include::{StorageMap, StorageValue},
-    types::VoteId,
-};
+use crate::{sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VoteId};
 use crate::{Ciphers, Error, Module, PublicKey, Trait};
 use crypto::encryption::ElGamal;
 use crypto::types::Cipher as BigCipher;
