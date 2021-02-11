@@ -1,7 +1,7 @@
 use crate as pallet_mixnet;
 use codec::alloc::sync::Arc;
 use codec::Decode;
-use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
+use frame_support::{construct_runtime, parameter_types};
 use hex_literal::hex;
 use parking_lot::RwLock;
 use sp_core::{
@@ -27,7 +27,7 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRunt
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 
 // Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
+construct_runtime!(
     pub enum TestRuntime where
         Block = Block,
         NodeBlock = Block,
@@ -72,10 +72,6 @@ impl frame_system::Config for TestRuntime {
 // --- mocking offchain-worker trait
 
 pub type TestExtrinsic = TestXt<Call, ()>;
-
-parameter_types! {
-    pub const UnsignedPriority: u64 = 100;
-}
 
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for TestRuntime
 where
