@@ -1,4 +1,4 @@
-use crate::{Error, Module, Trait};
+use crate::{Config, Error, Module};
 use frame_support::debug;
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
@@ -10,7 +10,7 @@ use rand_chacha::{
 use sp_std::{vec, vec::Vec};
 
 /// all functions related to random value generation in the offchain worker
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
     fn get_rng() -> ChaChaRng {
         // 32 byte array as random seed
         let seed: [u8; 32] = sp_io::offchain::random_seed();
@@ -161,7 +161,11 @@ impl<T: Trait> Module<T> {
         Self::random_range(&mut rng, lower, upper)
     }
 
-    fn random_range(rng: &mut ChaChaRng, lower: usize, upper: usize) -> Result<usize, Error<T>> {
+    fn random_range(
+        rng: &mut ChaChaRng,
+        lower: usize,
+        upper: usize,
+    ) -> Result<usize, Error<T>> {
         if upper == 0 {
             return Err(Error::RandomRangeError);
         }

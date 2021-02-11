@@ -2,15 +2,17 @@ pub mod prover;
 pub mod verifier;
 
 use crate::types::{Cipher, PublicKey as SubstratePK, QAsBigUint, TopicId, Wrapper};
-use crate::{sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VoteId};
-use crate::{Ciphers, Error, Module, PublicKey, Trait};
+use crate::{
+    sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VoteId,
+};
+use crate::{Ciphers, Config, Error, Module, PublicKey};
 use crypto::encryption::ElGamal;
 use crypto::types::Cipher as BigCipher;
 use num_bigint::BigUint;
 use sp_std::vec::Vec;
 
 /// all functions related to ballot operations in the offchain worker
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
     pub fn shuffle_ciphers(
         vote_id: &VoteId,
         topic_id: &TopicId,
@@ -40,7 +42,8 @@ impl<T: Trait> Module<T> {
 
         // shuffle the ciphers
         let shuffle = ElGamal::shuffle(&ciphers, &permutation, &randoms, &(pk.into()));
-        let shuffled_ciphers: Vec<BigCipher> = shuffle.into_iter().map(|item| item.0).collect();
+        let shuffled_ciphers: Vec<BigCipher> =
+            shuffle.into_iter().map(|item| item.0).collect();
 
         // return the shuffled ciphers, randoms, permutation as result
         Ok((shuffled_ciphers, randoms, permutation))

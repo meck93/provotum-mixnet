@@ -1,11 +1,11 @@
-use crate::{Module, Trait};
+use crate::{Config, Module};
 use crypto::types::ModuloOperations;
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use sp_std::vec::Vec;
 
 /// all functions related to zero-knowledge proofs in the offchain worker
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
     /// zips vectors a and b.
     /// performs component-wise operation: x = a_i^b_i % modulus
     /// multiplies all component-wise operation results

@@ -1,10 +1,10 @@
 use crate::{
     sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VotePhase,
 };
-use crate::{types::VoteId, Error, Module, Trait, Votes};
+use crate::{types::VoteId, Config, Error, Module, Votes};
 use frame_support::{debug, ensure};
 
-pub fn ensure_voting_authority<T: Trait>(
+pub fn ensure_voting_authority<T: Config>(
     account_id: &T::AccountId,
 ) -> Result<(), Error<T>> {
     let voting_authorities = Module::<T>::voting_authorities();
@@ -17,7 +17,7 @@ pub fn ensure_voting_authority<T: Trait>(
     }
 }
 
-pub fn ensure_not_a_voting_authority<T: Trait>(
+pub fn ensure_not_a_voting_authority<T: Config>(
     account_id: &T::AccountId,
 ) -> Result<(), Error<T>> {
     let voting_authorities = Module::<T>::voting_authorities();
@@ -30,7 +30,7 @@ pub fn ensure_not_a_voting_authority<T: Trait>(
     }
 }
 
-pub fn ensure_sealer<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>> {
+pub fn ensure_sealer<T: Config>(account_id: &T::AccountId) -> Result<(), Error<T>> {
     let sealers = Module::<T>::sealers();
     match sealers.contains(account_id) {
         true => Ok(()),
@@ -41,7 +41,7 @@ pub fn ensure_sealer<T: Trait>(account_id: &T::AccountId) -> Result<(), Error<T>
     }
 }
 
-pub fn ensure_vote_exists<T: Trait>(vote_id: &VoteId) -> Result<(), Error<T>> {
+pub fn ensure_vote_exists<T: Config>(vote_id: &VoteId) -> Result<(), Error<T>> {
     // check that the vote_id exists
     ensure!(
         Votes::<T>::contains_key(vote_id),
@@ -50,7 +50,7 @@ pub fn ensure_vote_exists<T: Trait>(vote_id: &VoteId) -> Result<(), Error<T>> {
     Ok(())
 }
 
-pub fn ensure_vote_phase<T: Trait>(
+pub fn ensure_vote_phase<T: Config>(
     vote_id: &VoteId,
     phase: VotePhase,
 ) -> Result<(), Error<T>> {

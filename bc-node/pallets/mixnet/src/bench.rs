@@ -8,7 +8,7 @@ use crate::{
     sp_api_hidden_includes_decl_storage::hidden_include::StorageDoubleMap,
     types::VotePhase,
 };
-use crate::{Ballots, Module, Trait};
+use crate::{Ballots, Config, Module};
 use alloc::vec::Vec;
 use codec::Decode;
 use crypto::{
@@ -19,7 +19,7 @@ use crypto::{
     types::{ElGamalParams, ModuloOperations, PrivateKey, PublicKey as ElGamalPK},
 };
 use frame_benchmarking::{benchmarks, whitelisted_caller};
-use frame_support::{ensure, traits::Box};
+use frame_support::ensure;
 use frame_system::RawOrigin;
 use hex_literal::hex;
 use num_bigint::BigUint;
@@ -28,7 +28,7 @@ use sp_std::vec;
 
 use crate::Module as PalletMixnet;
 
-fn get_voting_authority<T: Trait>() -> RawOrigin<T::AccountId> {
+fn get_voting_authority<T: Config>() -> RawOrigin<T::AccountId> {
     // use Alice as VotingAuthority
     let account_id: [u8; 32] =
         hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
@@ -37,7 +37,7 @@ fn get_voting_authority<T: Trait>() -> RawOrigin<T::AccountId> {
     RawOrigin::Signed(account.into())
 }
 
-fn get_sealer_bob<T: Trait>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
+fn get_sealer_bob<T: Config>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
     let account_id: [u8; 32] =
         hex!("8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").into();
 
@@ -45,7 +45,7 @@ fn get_sealer_bob<T: Trait>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
     (RawOrigin::Signed(account.into()), account_id)
 }
 
-fn get_sealer_charlie<T: Trait>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
+fn get_sealer_charlie<T: Config>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
     let account_id: [u8; 32] =
         hex!("90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22").into();
 
@@ -53,7 +53,7 @@ fn get_sealer_charlie<T: Trait>() -> (RawOrigin<T::AccountId>, [u8; 32]) {
     (RawOrigin::Signed(account.into()), account_id)
 }
 
-fn setup_public_key<T: Trait>(
+fn setup_public_key<T: Config>(
     vote_id: VoteId,
     pk: SubstratePK,
 ) -> Result<(), &'static str> {
@@ -65,7 +65,7 @@ fn setup_public_key<T: Trait>(
     Ok(())
 }
 
-fn setup_vote<T: Trait>(
+fn setup_vote<T: Config>(
     params: PublicParameters,
 ) -> Result<(Vec<u8>, Vec<u8>), &'static str> {
     // use Alice as VotingAuthority
@@ -90,7 +90,7 @@ fn setup_vote<T: Trait>(
     Ok((vote_id, topic_id))
 }
 
-fn generate_random_encryptions_encoded<T: Trait>(
+fn generate_random_encryptions_encoded<T: Config>(
     pk: &ElGamalPK,
     q: &BigUint,
     number: usize,
@@ -106,7 +106,7 @@ fn generate_random_encryptions_encoded<T: Trait>(
     Ok(encryptions)
 }
 
-fn generate_random_encryptions<T: Trait>(
+fn generate_random_encryptions<T: Config>(
     pk: &ElGamalPK,
     q: &BigUint,
     number: usize,
@@ -128,7 +128,7 @@ fn generate_random_encryptions<T: Trait>(
     Ok(encryptions)
 }
 
-fn setup_shuffle<T: Trait>(
+fn setup_shuffle<T: Config>(
     size: usize,
     encoded: bool,
 ) -> Result<(Vec<u8>, Vec<u8>, ElGamalPK), &'static str> {
@@ -160,7 +160,7 @@ fn setup_shuffle<T: Trait>(
     Ok((topic_id, vote_id, pk))
 }
 
-fn setup_shuffle_proof<T: Trait>(
+fn setup_shuffle_proof<T: Config>(
     size: usize,
     encoded: bool,
 ) -> Result<
@@ -189,7 +189,7 @@ fn setup_shuffle_proof<T: Trait>(
     Ok((vote_id, e, e_hat, r, permutation, pk))
 }
 
-fn setup_sealer<T: Trait>(
+fn setup_sealer<T: Config>(
     params: &ElGamalParams,
     sk: &PrivateKey,
     pk: &ElGamalPK,
@@ -215,7 +215,7 @@ fn setup_sealer<T: Trait>(
     Ok((pk_share, proof))
 }
 
-fn setup_vote_with_distributed_keys<T: Trait>(
+fn setup_vote_with_distributed_keys<T: Config>(
     size: usize,
     encoded: bool,
 ) -> Result<
@@ -309,7 +309,7 @@ fn setup_vote_with_distributed_keys<T: Trait>(
     ))
 }
 
-fn create_decrypted_shares_and_proof<T: Trait>(
+fn create_decrypted_shares_and_proof<T: Config>(
     topic_id: &TopicId,
     params: &ElGamalParams,
     sealer_pk: &ElGamalPK,
@@ -352,7 +352,7 @@ fn create_decrypted_shares_and_proof<T: Trait>(
     Ok((decryption_proof, decrypted_shares))
 }
 
-fn submit_decrypted_shares_and_proofs<T: Trait>(
+fn submit_decrypted_shares_and_proofs<T: Config>(
     size: usize,
     encoded: bool,
 ) -> Result<(TopicId, VoteId), &'static str> {
@@ -405,8 +405,6 @@ fn submit_decrypted_shares_and_proofs<T: Trait>(
 }
 
 benchmarks! {
-    _{ }
-
     store_public_key {
         let (_, _, pk) = Helper::setup_lg_system();
         let who = get_voting_authority::<T>();

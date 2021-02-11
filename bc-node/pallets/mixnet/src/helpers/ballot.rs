@@ -1,10 +1,12 @@
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::{StorageDoubleMap, StorageMap};
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::{
+    StorageDoubleMap, StorageMap,
+};
 use crate::types::{Ballot, Cipher, VoteId};
-use crate::{Ballots, Ciphers, Module, Trait};
+use crate::{Ballots, Ciphers, Config, Module};
 use sp_std::vec::Vec;
 
 /// all functions related to ballot operations in the offchain worker
-pub fn store_ballot<T: Trait>(from: &T::AccountId, vote_id: &VoteId, ballot: Ballot) {
+pub fn store_ballot<T: Config>(from: &T::AccountId, vote_id: &VoteId, ballot: Ballot) {
     // store the encrypted ballot
     Ballots::<T>::insert(vote_id, from, ballot.clone());
 

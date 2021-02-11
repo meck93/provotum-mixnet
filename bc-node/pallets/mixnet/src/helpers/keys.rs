@@ -2,7 +2,7 @@ use super::assertions::ensure_vote_exists;
 use crate::{
     sp_api_hidden_includes_decl_storage::hidden_include::StorageMap,
     types::{PublicKey as SubstratePK, PublicKeyShare, PublicParameters, Vote, VoteId},
-    Error, PublicKey, PublicKeyShareBySealer, PublicKeyShares, Trait, Votes,
+    Config, Error, PublicKey, PublicKeyShareBySealer, PublicKeyShares, Votes,
 };
 use crypto::types::PublicKey as ElGamalPK;
 use frame_support::ensure;
@@ -11,7 +11,7 @@ use num_traits::One;
 use sp_std::vec::Vec;
 
 /// all functions related to key generation and decrypted share operations
-pub fn get_public_params<T: Trait>(
+pub fn get_public_params<T: Config>(
     vote_id: &VoteId,
 ) -> Result<PublicParameters, Error<T>> {
     ensure_vote_exists(vote_id)?;
@@ -21,11 +21,11 @@ pub fn get_public_params<T: Trait>(
     Ok(vote.params)
 }
 
-pub fn get_public_key<T: Trait>(vote_id: &VoteId) -> Result<SubstratePK, Error<T>> {
+pub fn get_public_key<T: Config>(vote_id: &VoteId) -> Result<SubstratePK, Error<T>> {
     PublicKey::get(vote_id).ok_or(Error::<T>::PublicKeyNotExistsError)
 }
 
-pub fn get_public_keyshare<T: Trait>(
+pub fn get_public_keyshare<T: Config>(
     vote_id: &VoteId,
     sealer: &T::AccountId,
 ) -> Result<PublicKeyShare, Error<T>> {
@@ -34,7 +34,7 @@ pub fn get_public_keyshare<T: Trait>(
 }
 
 /// all functions related to key generation and decrypted share operations
-pub fn combine_shares<T: Trait>(vote_id: &VoteId) -> Result<SubstratePK, Error<T>> {
+pub fn combine_shares<T: Config>(vote_id: &VoteId) -> Result<SubstratePK, Error<T>> {
     // get the public parameters
     let params: PublicParameters = get_public_params::<T>(&vote_id)?;
     let shares: Vec<PublicKeyShare> = PublicKeyShares::get(&vote_id);

@@ -1,11 +1,13 @@
 use super::assertions::{ensure_vote_exists, ensure_voting_authority};
 use crate::types::{Vote, VoteId};
-use crate::{sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VotePhase};
-use crate::{Error, Trait, Votes};
+use crate::{
+    sp_api_hidden_includes_decl_storage::hidden_include::StorageMap, types::VotePhase,
+};
+use crate::{Config, Error, Votes};
 use frame_support::debug;
 
 /// all functions related to key generation and decrypted share operations
-pub fn set_phase<T: Trait>(
+pub fn set_phase<T: Config>(
     who: &T::AccountId,
     vote_id: &VoteId,
     phase: VotePhase,

@@ -1,9 +1,13 @@
-use crate::mock::*;
+use crate::mock::{
+    Call as MockCall, Event, ExternalityBuilder, OffchainModule, Origin, System,
+    TestExtrinsic, TestRuntime,
+};
 use crate::types::{
     Ballot, Cipher, PublicKey as SubstratePK, PublicParameters, ShuffleProof as Proof,
     VotePhase, Wrapper,
 };
 use crate::*;
+use alloc::collections::BTreeMap;
 use codec::Decode;
 use crypto::{
     encryption::ElGamal,
@@ -14,7 +18,6 @@ use crypto::{
     },
 };
 use frame_support::{assert_err, assert_ok};
-use frame_system as system;
 use hex_literal::hex;
 use num_bigint::BigUint;
 use num_traits::Zero;
@@ -25,25 +28,36 @@ fn get_voting_authority() -> Origin {
     let account_id: [u8; 32] =
         hex!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d").into();
     let account =
-        <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
+        <TestRuntime as frame_system::Config>::AccountId::decode(&mut &account_id[..])
+            .unwrap();
     Origin::signed(account)
 }
 
-fn get_sealer_bob() -> (Origin, <TestRuntime as system::Trait>::AccountId, [u8; 32]) {
+fn get_sealer_bob() -> (
+    Origin,
+    <TestRuntime as frame_system::Config>::AccountId,
+    [u8; 32],
+) {
     let account_id: [u8; 32] =
         hex!("8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48").into();
 
-    let sealer: <TestRuntime as system::Trait>::AccountId =
-        <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
+    let sealer: <TestRuntime as frame_system::Config>::AccountId =
+        <TestRuntime as frame_system::Config>::AccountId::decode(&mut &account_id[..])
+            .unwrap();
     (Origin::signed(sealer), sealer, account_id)
 }
 
-fn get_sealer_charlie() -> (Origin, <TestRuntime as system::Trait>::AccountId, [u8; 32]) {
+fn get_sealer_charlie() -> (
+    Origin,
+    <TestRuntime as frame_system::Config>::AccountId,
+    [u8; 32],
+) {
     let account_id: [u8; 32] =
         hex!("90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22").into();
 
-    let sealer: <TestRuntime as system::Trait>::AccountId =
-        <TestRuntime as system::Trait>::AccountId::decode(&mut &account_id[..]).unwrap();
+    let sealer: <TestRuntime as frame_system::Config>::AccountId =
+        <TestRuntime as frame_system::Config>::AccountId::decode(&mut &account_id[..])
+            .unwrap();
     (Origin::signed(sealer), sealer, account_id)
 }
 
@@ -118,7 +132,7 @@ fn setup_ciphers(vote_id: &VoteId, topic_id: &TopicId, pk: &ElGamalPK, encoded: 
     assert_eq!(messages.len(), randoms.len());
 
     // create the voter (i.e. the transaction signer)
-    let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+    let account: <TestRuntime as frame_system::Config>::AccountId = Default::default();
     let voter = Origin::signed(account);
 
     for index in 0..messages.len() {
@@ -251,7 +265,8 @@ fn test_store_public_key_not_a_voting_authority() {
     t.execute_with(|| {
         // create the submitter (i.e. the default voter)
         // NOT a voting authority
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let who = Origin::signed(account);
         let vote_id = "20201212".as_bytes().to_vec();
 
@@ -283,7 +298,8 @@ fn test_create_vote_not_a_voting_authority() {
     t.execute_with(|| {
         // create the submitter (i.e. the default voter)
         // NOT a voting authority
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let who = Origin::signed(account);
 
         // create the vote
@@ -331,7 +347,8 @@ fn test_store_question_not_a_voting_authority() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // create fake authority
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let who = Origin::signed(account);
 
         // create fake vote_id
@@ -407,7 +424,7 @@ fn test_cast_ballot_no_vote_exists() {
     let (mut t, _, _) = ExternalityBuilder::build();
     t.execute_with(|| {
         // use the default voter
-        let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let acct: <TestRuntime as frame_system::Config>::AccountId = Default::default();
 
         // create not existing topic_id and vote_id
         let topic_id = "Topic Doesn't Exist".as_bytes().to_vec();
@@ -444,7 +461,7 @@ fn test_cast_ballot_works_encoded() {
         setup_public_key(vote_id.clone(), pk.clone().into());
 
         // Create the voter
-        let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let acct: <TestRuntime as frame_system::Config>::AccountId = Default::default();
 
         // submit the value 32
         let num: u64 = 32;
@@ -475,7 +492,7 @@ fn test_cast_ballot_works_encoded() {
 
         // An event is emitted
         assert!(System::events().iter().any(|er| er.event
-            == TestEvent::pallet_mixnet(RawEvent::BallotSubmitted(
+            == Event::pallet_mixnet(RawEvent::BallotSubmitted(
                 acct,
                 vote_id.clone(),
                 ballot.clone()
@@ -512,7 +529,7 @@ fn test_cast_ballot_works() {
         setup_public_key(vote_id.clone(), pk.clone().into());
 
         // Create the voter
-        let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let acct: <TestRuntime as frame_system::Config>::AccountId = Default::default();
 
         // submit the value 32
         let num: u64 = 32;
@@ -541,7 +558,7 @@ fn test_cast_ballot_works() {
 
         // An event is emitted
         assert!(System::events().iter().any(|er| er.event
-            == TestEvent::pallet_mixnet(RawEvent::BallotSubmitted(
+            == Event::pallet_mixnet(RawEvent::BallotSubmitted(
                 acct,
                 vote_id.clone(),
                 ballot.clone()
@@ -595,7 +612,10 @@ fn test_offchain_signed_tx_encoded() {
         assert!(pool_state.read().transactions.is_empty());
         let tx = TestExtrinsic::decode(&mut &*tx).unwrap();
         assert_eq!(tx.signature.unwrap().0, 0);
-        assert_eq!(tx.call, Call::cast_ballot(vote_id, ballot.clone()));
+        assert_eq!(
+            tx.call,
+            MockCall::OffchainModule(crate::Call::cast_ballot(vote_id, ballot.clone()))
+        );
     });
 }
 
@@ -793,7 +813,8 @@ fn store_small_dummy_vote_works_encoded() {
         let ballot: Ballot = Ballot { answers };
 
         // create the voter (i.e. the transaction signer)
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let voter = Origin::signed(account);
 
         let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
@@ -837,7 +858,8 @@ fn store_small_dummy_vote_works() {
         let ballot: Ballot = Ballot { answers };
 
         // create the voter (i.e. the transaction signer)
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let voter = Origin::signed(account);
 
         let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
@@ -881,7 +903,8 @@ fn store_real_size_vote_works_encoded() {
         let ballot: Ballot = Ballot { answers };
 
         // create the voter (i.e. the transaction signer)
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let voter = Origin::signed(account);
 
         let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
@@ -925,7 +948,8 @@ fn store_real_size_vote_works() {
         let ballot: Ballot = Ballot { answers };
 
         // create the voter (i.e. the transaction signer)
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let voter = Origin::signed(account);
 
         let vote_submission_result = OffchainModule::cast_ballot(voter, vote_id, ballot);
@@ -972,7 +996,8 @@ fn test_shuffle_ciphers_encoded() {
         ];
 
         // create the voter (i.e. the transaction signer)
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let voter = Origin::signed(account);
 
         for index in 0..3 {
@@ -1042,7 +1067,8 @@ fn test_shuffle_ciphers() {
         ];
 
         // create the voter (i.e. the transaction signer)
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let voter = Origin::signed(account);
 
         for index in 0..3 {
@@ -1272,7 +1298,8 @@ fn test_set_vote_phase_not_a_voting_authority() {
 
         // use a normal user (i.e. the default voter)
         // NOT a voting authority
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let who = Origin::signed(account);
 
         // try to change the vote phase
@@ -1383,7 +1410,8 @@ fn test_store_public_key_share_fail_no_sealers() {
 
         // use a normal user (i.e. the default voter)
         // NOT a voting authority
-        let account: <TestRuntime as system::Trait>::AccountId = Default::default();
+        let account: <TestRuntime as frame_system::Config>::AccountId =
+            Default::default();
         let who = Origin::signed(account);
         let sealer_id = "Bob".as_bytes();
 

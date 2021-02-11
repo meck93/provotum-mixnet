@@ -1,6 +1,6 @@
 use crate::sp_api_hidden_includes_decl_storage::hidden_include::StorageMap;
 use crate::types::{Ballot, Cipher, TopicId};
-use crate::{Call, Error, Module, PublicKey, Trait, Votes};
+use crate::{Call, Config, Error, Module, PublicKey, Votes};
 use core::convert::TryInto;
 use crypto::{encryption::ElGamal, types::PublicKey as ElGamalPK};
 use frame_support::{debug, ensure};
@@ -8,7 +8,7 @@ use frame_system::offchain::{SendSignedTransaction, Signer};
 use num_bigint::BigUint;
 use sp_std::{vec, vec::Vec};
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
     pub fn offchain_signed_tx(
         block_number: T::BlockNumber,
         vote_id: Vec<u8>,
