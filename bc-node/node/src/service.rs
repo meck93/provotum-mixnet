@@ -1,6 +1,5 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use frame_benchmarking::Benchmarking;
 use provotum_runtime::{self, opaque::Block, pallet_mixnet, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_executor::native_executor_instance;
